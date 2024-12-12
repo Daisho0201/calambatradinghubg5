@@ -104,55 +104,46 @@ def create_items_table():
 proofs_data = []
 
 # Route for user information
-@app.route('/user_info', methods=['GET', 'POST'])
+@app.route('/user_info')
 @login_required
 def user_info():
     try:
-        user_id = session['user_id']
+        user_id = session.get('user_id')
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-
-        if request.method == 'POST':
-            # Handle form submission for user info updates
-            first_name = request.form['first_name']
-            last_name = request.form['last_name']
-            username = request.form['username']
-            email = request.form['email']
-
-            # Update user information
-            cursor.execute(
-                "UPDATE users SET first_name = %s, last_name = %s, username = %s, email = %s WHERE id = %s",
-                (first_name, last_name, username, email, user_id)
-            )
-            conn.commit()
-
-        # Fetch current user information
-        cursor.execute(
-            "SELECT id, first_name, last_name, username, email, profile_picture FROM users WHERE id = %s", 
-            (user_id,)
-        )
-        user_data = cursor.fetchone()
         
-        # Debug: Print user data to console
-        print("User Data:", user_data)
-
-        # Fetch posted items
-        cursor.execute("""
-            SELECT id, title as name, price, description, 
-                   COALESCE(grid_image, '/static/images/default-item.jpg') as grid_image 
+        # Get user information
+        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        
+        # Get user's posted items with images
+        cursor.execute('''
+            SELECT 
+                id,
+                title as name,
+                price,
+                image_url as grid_image,
+                description
             FROM items 
-            WHERE seller_id = %s
-        """, (user_id,))
-        posted_items = cursor.fetchall()
-
+            WHERE seller_id = %s 
+            ORDER BY id DESC
+        ''', (user_id,))
+        
+        posted_items = cursor.fetchall()  # Changed from listed_items to posted_items
+        print(f"Found {len(posted_items)} items for user {user_id}")
+        
+        # Debug print for the first item
+        if posted_items:
+            print(f"First item data: {posted_items[0]}")
+            print(f"First item image URL: {posted_items[0].get('grid_image')}")
+        
         cursor.close()
         conn.close()
-
-        if not user_data:
-            return redirect(url_for('login'))
-
-        return render_template('user_info.html', user=user_data, posted_items=posted_items)
-
+        
+        return render_template('user_info.html', 
+                             user=user,
+                             posted_items=posted_items)  # Changed to match template
+                             
     except Exception as e:
         print(f"Error in user_info route: {str(e)}")
         print(f"Error type: {type(e)}")
@@ -319,20 +310,42 @@ def get_all_items():
 
 # Route for main index
 @app.route('/main_index')
+@login_required  # Ensure the user is logged in
 def main_index():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Fetch all items from the database, including name and image URL
-    cursor.execute('''
-        SELECT id, title AS name, price, image_url AS grid_image
-        FROM items
-    ''')
-    items = cursor.fetchall()  # Get all items as a list of dictionaries
-    cursor.close()
-    conn.close()
-    
-    return render_template('main_index.html', items=items)
+    try:
+        print("Attempting to connect to database in main_index route...")
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        print("Executing main query...")
+        cursor.execute('''
+            SELECT id, 
+                   title as name, 
+                   price, 
+                   description,
+                   COALESCE(image_url, %s) as grid_image 
+            FROM items 
+            ORDER BY id DESC
+        ''', (DEFAULT_IMAGE_URL,))
+        
+        all_items = cursor.fetchall()
+        
+        # Debug: Print each item's details
+        for item in all_items:
+            print(f"Item {item['id']}:")
+            print(f"  Name: {item['name']}")
+            print(f"  Price: {item['price']}")
+            print(f"  Image URL: {item['grid_image']}")
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('main_index.html', all_items=all_items)
+        
+    except Exception as e:
+        print(f"Error in main_index route: {str(e)}")
+        print(traceback.format_exc())
+        return "An error occurred", 500
 
 
 @app.route('/filter/<category>', methods=['GET'])
@@ -1087,5 +1100,3 @@ create_detail_images_table()
 
 if __name__ == '__main__':
     app.run(debug=True)  # Start the Flask application
-
-
