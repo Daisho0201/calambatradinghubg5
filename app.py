@@ -309,16 +309,22 @@ def main_index():
         cursor = conn.cursor(dictionary=True)
         
         print("Executing query...")
-        cursor.execute('SELECT id, title as name, price, description, seller_id FROM items')
+        cursor.execute('''
+            SELECT id, 
+                   title as name, 
+                   price, 
+                   description,
+                   COALESCE(image_url, '/static/images/default-item.jpg') as grid_image 
+            FROM items 
+            ORDER BY id DESC
+        ''')
         
         print("Fetching results...")
         all_items = cursor.fetchall()
         
-        # Add default grid_image if not present
-        for item in all_items:
-            item['grid_image'] = item.get('grid_image', '/static/images/default-item.jpg')
-        
         print(f"Found {len(all_items) if all_items else 0} items")
+        if all_items:
+            print("Sample item:", all_items[0])
         
         cursor.close()
         conn.close()
@@ -814,24 +820,39 @@ def post_item():
             description = request.form['item_desc']
             seller_id = session.get('user_id')
 
-            # Debug prints
-            print("Form data received:")
-            print(f"Title: {title}")
-            print(f"Price: {price}")
-            print(f"Description: {description}")
-            print(f"Seller ID: {seller_id}")
+            # Handle image upload
+            image_url = None
+            if 'grid_image' in request.files:
+                grid_image = request.files['grid_image']
+                if grid_image and allowed_file(grid_image.filename):
+                    try:
+                        # Upload to Cloudinary
+                        upload_result = cloudinary.uploader.upload(grid_image)
+                        image_url = upload_result['secure_url']
+                        print(f"Image uploaded successfully: {image_url}")
+                    except Exception as e:
+                        print(f"Error uploading image: {str(e)}")
 
             # Connect to database
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            # Insert the item with only the columns that exist in your table
-            cursor.execute('''
-                INSERT INTO items (title, price, description, seller_id)
-                VALUES (%s, %s, %s, %s)
-            ''', (title, price, description, seller_id))
+            # First, let's add the image_url column if it doesn't exist
+            try:
+                cursor.execute("""
+                    ALTER TABLE items 
+                    ADD COLUMN IF NOT EXISTS image_url VARCHAR(255)
+                """)
+                conn.commit()
+            except Exception as e:
+                print(f"Error adding image_url column: {e}")
 
-            # Get the ID of the newly inserted item
+            # Insert the item with the image URL
+            cursor.execute('''
+                INSERT INTO items (title, price, description, seller_id, image_url)
+                VALUES (%s, %s, %s, %s, %s)
+            ''', (title, price, description, seller_id, image_url))
+
             item_id = cursor.lastrowid
             print(f"New item ID: {item_id}")
 
@@ -839,10 +860,8 @@ def post_item():
             cursor.close()
             conn.close()
 
-            # Redirect to the main page after successful insertion
             return redirect(url_for('main_index'))
 
-        # If it's a GET request, just show the form
         return render_template('post_item.html')
 
     except Exception as e:
