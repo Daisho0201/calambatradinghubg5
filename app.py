@@ -52,12 +52,26 @@ def allowed_file(filename):
 
 # Database connection
 def get_db_connection():
-    return mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='',  # No password
-        database='marketplace'
-    )
+    try:
+        # Print environment variables (for debugging)
+        print(f"DB Host: {os.getenv('DB_HOST')}")
+        print(f"DB Port: {os.getenv('DB_PORT')}")
+        print(f"DB User: {os.getenv('DB_USER')}")
+        print(f"DB Name: {os.getenv('DB_NAME')}")
+        
+        connection = mysql.connector.connect(
+            host=os.getenv('DB_HOST'),
+            port=int(os.getenv('DB_PORT', '28562')),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME'),
+            ssl_mode='REQUIRED'
+        )
+        print("Database connection successful!")
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Error connecting to database: {err}")
+        raise
 
 # Create the items table
 def create_items_table():
