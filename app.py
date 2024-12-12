@@ -104,41 +104,58 @@ proofs_data = []
 @app.route('/user_info', methods=['GET', 'POST'])
 @login_required
 def user_info():
-    user_id = session['user_id']
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        user_id = session['user_id']
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
 
-    if request.method == 'POST':
-        # Handle form submission for user info updates
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        username = request.form['username']
-        email = request.form['email']
+        if request.method == 'POST':
+            # Handle form submission for user info updates
+            first_name = request.form['first_name']
+            last_name = request.form['last_name']
+            username = request.form['username']
+            email = request.form['email']
 
-        # Update user information
+            # Update user information
+            cursor.execute(
+                "UPDATE users SET first_name = %s, last_name = %s, username = %s, email = %s WHERE id = %s",
+                (first_name, last_name, username, email, user_id)
+            )
+            conn.commit()
+
+        # Fetch current user information
         cursor.execute(
-            "UPDATE users SET first_name = %s, last_name = %s, username = %s, email = %s WHERE id = %s",
-            (first_name, last_name, username, email, user_id)
+            "SELECT id, first_name, last_name, username, email, profile_picture FROM users WHERE id = %s", 
+            (user_id,)
         )
-        conn.commit()
+        user_data = cursor.fetchone()
+        
+        # Debug: Print user data to console
+        print("User Data:", user_data)
 
-    # Fetch current user information
-    cursor.execute(
-        "SELECT first_name, last_name, username, email, profile_picture FROM users WHERE id = %s", 
-        (user_id,)
-    )
-    user_data = cursor.fetchone()
-    
-    # Debug: Print user data to console
-    print("User Data:", user_data)  # This will help debug if the profile_picture URL is being retrieved
+        # Fetch posted items
+        cursor.execute("""
+            SELECT id, title as name, price, description, 
+                   COALESCE(grid_image, '/static/images/default-item.jpg') as grid_image 
+            FROM items 
+            WHERE seller_id = %s
+        """, (user_id,))
+        posted_items = cursor.fetchall()
 
-    # Fetch posted items
-    posted_items = get_user_items(user_id)
+        cursor.close()
+        conn.close()
 
-    cursor.close()
-    conn.close()
+        if not user_data:
+            return redirect(url_for('login'))
 
-    return render_template('user_info.html', user=user_data, posted_items=posted_items)
+        return render_template('user_info.html', user=user_data, posted_items=posted_items)
+
+    except Exception as e:
+        print(f"Error in user_info route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 
