@@ -410,19 +410,40 @@ def add_item_columns():
     except Exception as e:
         print(f"Error adding columns: {str(e)}")
 
+def create_detail_images_table():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Create detail_images table if it doesn't exist
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS detail_images (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                item_id INT NOT NULL,
+                image_url VARCHAR(255) NOT NULL,
+                FOREIGN KEY (item_id) REFERENCES items(id)
+            )
+        ''')
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Detail images table created successfully")
+        
+    except Exception as e:
+        print(f"Error creating detail_images table: {str(e)}")
+
 @app.route('/item/<int:item_id>')
 def item_detail(item_id):
     try:
-        # First ensure the columns exist
+        # Ensure all necessary tables and columns exist
         add_item_columns()
+        create_detail_images_table()
         
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Debug print
-        print(f"Fetching details for item ID: {item_id}")
-        
-        # Simplified query with only existing columns
+        # First get the main item details
         cursor.execute('''
             SELECT i.id,
                    i.title as name,
@@ -440,17 +461,34 @@ def item_detail(item_id):
         ''', (item_id,))
         
         item = cursor.fetchone()
-        print(f"Fetched item: {item}")
+        print(f"Fetched main item: {item}")
         
         if item is None:
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
+        
+        # Then get the detail images
+        cursor.execute('''
+            SELECT image_url
+            FROM detail_images
+            WHERE item_id = %s
+            ORDER BY id
+        ''', (item_id,))
+        
+        detail_images = cursor.fetchall()
+        print(f"Fetched detail images: {detail_images}")
+        
+        # Convert detail_images to the format expected by the template
+        item['detail_images'] = [img['image_url'] for img in detail_images] if detail_images else []
+        
+        # If no detail images, use the main image
+        if not item['detail_images'] and item['grid_image']:
+            item['detail_images'] = [item['grid_image']]
             
         # Set default values for missing fields
         item.setdefault('meetup_place', 'To be discussed')
         item.setdefault('seller_phone', 'Contact through chat')
         item.setdefault('grid_image', DEFAULT_IMAGE_URL)
-        item.setdefault('detail_images', [])
         item.setdefault('username', 'Anonymous')
         
         # Add a default item quality
@@ -879,41 +917,49 @@ def post_item():
             price = request.form['item_price']
             description = request.form['item_desc']
             seller_id = session.get('user_id')
-
-            # Handle image upload
-            image_url = DEFAULT_IMAGE_URL  # Set default image
+            
+            # Handle main image upload
+            image_url = DEFAULT_IMAGE_URL
             if 'grid_image' in request.files:
                 grid_image = request.files['grid_image']
                 if grid_image and grid_image.filename != '':
                     try:
-                        # Upload to Cloudinary
-                        print("Attempting to upload image to Cloudinary...")
-                        upload_result = cloudinary.uploader.upload(
-                            grid_image,
-                            folder="marketplace_items",
-                            transformation=[
-                                {'width': 800, 'height': 600, 'crop': 'fill'}
-                            ]
-                        )
-                        image_url = upload_result.get('secure_url')
-                        print(f"Cloudinary upload successful. URL: {image_url}")
-                    except Exception as upload_error:
-                        print(f"Cloudinary upload error: {str(upload_error)}")
-                        print(traceback.format_exc())
+                        upload_result = cloudinary.uploader.upload(grid_image)
+                        image_url = upload_result['secure_url']
+                        print(f"Main image uploaded: {image_url}")
+                    except Exception as e:
+                        print(f"Error uploading main image: {str(e)}")
 
-            # Connect to database
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            # Insert the item with the image URL
-            print(f"Inserting item with image URL: {image_url}")
+            # Insert the main item
             cursor.execute('''
                 INSERT INTO items (title, price, description, seller_id, image_url)
                 VALUES (%s, %s, %s, %s, %s)
             ''', (title, price, description, seller_id, image_url))
-
+            
             item_id = cursor.lastrowid
             print(f"New item inserted with ID: {item_id}")
+
+            # Handle additional images
+            if 'detail_images' in request.files:
+                detail_files = request.files.getlist('detail_images')
+                for detail_image in detail_files:
+                    if detail_image and detail_image.filename != '':
+                        try:
+                            upload_result = cloudinary.uploader.upload(detail_image)
+                            detail_url = upload_result['secure_url']
+                            print(f"Detail image uploaded: {detail_url}")
+                            
+                            # Insert into detail_images table
+                            cursor.execute('''
+                                INSERT INTO detail_images (item_id, image_url)
+                                VALUES (%s, %s)
+                            ''', (item_id, detail_url))
+                            
+                        except Exception as e:
+                            print(f"Error uploading detail image: {str(e)}")
 
             conn.commit()
             cursor.close()
