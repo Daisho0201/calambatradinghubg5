@@ -163,14 +163,25 @@ class User(UserMixin):
 
 # Index route to display homepage
 @app.route('/')
-def index():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)  # Use dictionary cursor for named access
-    cursor.execute("SELECT * FROM items")  # Fetch all items from the database
-    items = cursor.fetchall()  # Get all items as a list of dictionaries
-    cursor.close()
-    conn.close()
-    return render_template('homepage.html', items=items)
+def main_index():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # Fetch all items for the main index
+        cursor.execute('SELECT * FROM items ORDER BY id DESC')
+        all_items = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        print(f"All items fetched: {all_items}")
+
+        return render_template('main_index.html', items=all_items)  # Pass all items to the template
+
+    except Exception as e:
+        print(f"Error in main_index route: {str(e)}")
+        return "An error occurred", 500
 
 # Homepage route
 @app.route('/homepage')
