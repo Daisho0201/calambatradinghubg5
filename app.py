@@ -806,46 +806,51 @@ create_items_table()
 @app.route('/post_item', methods=['GET', 'POST'])
 @login_required
 def post_item():
-    if request.method == 'POST':
-        item_name = request.form['item_name']
-        item_price = request.form['item_price']
-        item_desc = request.form['item_desc']
-        item_quality = request.form['item_quality']
-        item_category = request.form['item_category']
-        meetup_place = request.form['meetup_place']
-        seller_phone = request.form['seller_phone']
+    try:
+        if request.method == 'POST':
+            # Get form data
+            title = request.form['item_name']
+            price = request.form['item_price']
+            description = request.form['item_desc']
+            seller_id = session.get('user_id')
 
-        # Handle Grid Image upload
-        grid_image = request.files['grid_image']
-        grid_image_url = None
-        if grid_image and allowed_file(grid_image.filename):
-            upload_result = cloudinary.uploader.upload(grid_image)
-            grid_image_url = upload_result['secure_url']
+            # Debug prints
+            print("Form data received:")
+            print(f"Title: {title}")
+            print(f"Price: {price}")
+            print(f"Description: {description}")
+            print(f"Seller ID: {seller_id}")
 
-        # Handle Detail Image uploads (multiple images)
-        detail_images = request.files.getlist('detail_images')
-        detail_image_urls = []
+            # Connect to database
+            conn = get_db_connection()
+            cursor = conn.cursor()
 
-        for detail_image in detail_images:
-            if detail_image and allowed_file(detail_image.filename):
-                upload_result = cloudinary.uploader.upload(detail_image)
-                detail_image_urls.append(upload_result['secure_url'])
+            # Insert the item with only the columns that exist in your table
+            cursor.execute('''
+                INSERT INTO items (title, price, description, seller_id)
+                VALUES (%s, %s, %s, %s)
+            ''', (title, price, description, seller_id))
 
-        # Save item to the database
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(''' 
-            INSERT INTO items (name, price, description, quality, category, meetup_place, seller_phone, grid_image, detail_images, user_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (item_name, item_price, item_desc, item_quality, item_category, meetup_place, seller_phone, 
-              grid_image_url, ','.join(detail_image_urls), session.get('user_id')))
-        conn.commit()
-        cursor.close()
-        conn.close()
+            # Get the ID of the newly inserted item
+            item_id = cursor.lastrowid
+            print(f"New item ID: {item_id}")
 
-        return redirect(url_for('main_index'))
+            conn.commit()
+            cursor.close()
+            conn.close()
 
-    return render_template('post_item.html')
+            # Redirect to the main page after successful insertion
+            return redirect(url_for('main_index'))
+
+        # If it's a GET request, just show the form
+        return render_template('post_item.html')
+
+    except Exception as e:
+        print(f"Error in post_item route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 # Add this new route to handle profile picture updates
 @app.route('/update_profile_picture', methods=['POST'])
