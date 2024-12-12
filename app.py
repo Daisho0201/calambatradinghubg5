@@ -283,10 +283,20 @@ def get_all_items():
 @app.route('/main_index')
 @login_required  # Ensure the user is logged in
 def main_index():
-    user_id = session['user_id']  # Assuming user_id is stored in the session
-    user_items = get_user_items(user_id)  # Fetch user items from the database
-    all_items = get_all_items()  # Fetch all items for display
-    return render_template('main_index.html', user_items=user_items, all_items=all_items)
+    try:
+        # Get all items from the database
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute('SELECT * FROM items ORDER BY created_at DESC')
+        all_items = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        # Pass the items to the template
+        return render_template('main_index.html', all_items=all_items)
+    except Exception as e:
+        print(f"Error in main_index route: {str(e)}")
+        return "An error occurred", 500
 
 
 @app.route('/filter/<category>', methods=['GET'])
