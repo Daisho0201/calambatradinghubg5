@@ -348,18 +348,32 @@ def main_index():
         return "An error occurred", 500
 
 
-@app.route('/filter/<category>', methods=['GET'])
-@login_required
+@app.route('/filter_by_category/<string:category>')
 def filter_by_category(category):
-    user_id = session['user_id']
-    user_items = get_user_items(user_id)
-    
-    if category == 'all':
-        all_items = get_all_items()
-    else:
-        all_items = get_items_by_category(category)  # Fetch items filtered by category
-    
-    return render_template('main_index.html', user_items=user_items, all_items=all_items)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # If the category is 'all', fetch all items
+        if category == 'all':
+            cursor.execute('SELECT * FROM items ORDER BY id DESC')
+        else:
+            cursor.execute('SELECT * FROM items WHERE category = %s ORDER BY id DESC', (category,))
+
+        filtered_items = cursor.fetchall()
+        print(f"Filtered items for category '{category}': {filtered_items}")
+
+        cursor.close()
+        conn.close()
+
+        return render_template('main_index.html', items=filtered_items)  # Adjust the template as needed
+
+    except Exception as e:
+        print(f"Error in filter_by_category route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 def get_items_by_category(category):
     connection = None  # Initialize connection variable here to avoid reference errors
