@@ -163,35 +163,34 @@ class User(UserMixin):
 
 # Index route to display homepage
 @app.route('/')
+def homepage():
+    # Check if the user is logged in
+    if 'user_id' in session:  # Assuming you store user ID in session
+        return redirect(url_for('main_index'))  # Redirect to main index if logged in
+    return render_template('homepage.html')  # Render the login page if not logged in
+
+@app.route('/main_index')
 def main_index():
+    # This route should only be accessible if the user is logged in
+    if 'user_id' not in session:
+        return redirect(url_for('homepage'))  # Redirect to homepage if not logged in
+
+    # Fetch items and render the main index
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Fetch all items for the main index
         cursor.execute('SELECT * FROM items ORDER BY id DESC')
         all_items = cursor.fetchall()
-
-        print(f"All items fetched: {all_items}")
 
         cursor.close()
         conn.close()
 
-        return render_template('main_index.html', items=all_items)  # Pass all items to the template
+        return render_template('main_index.html', items=all_items)
 
     except Exception as e:
         print(f"Error in main_index route: {str(e)}")
         return "An error occurred", 500
-
-# Homepage route
-@app.route('/homepage')
-def homepage():
-
-    # Check if 'user_id' exists in the session
-    if session.get('user_id'):  # Safely access 'user_id' using get()
-        return redirect(url_for('main_index'))  # Redirect to main_index if user is logged in
-    else:
-        return render_template('homepage.html')  # Render the login page if not logged in
 
 # Route for searching and filtering items
 @app.route('/search')
