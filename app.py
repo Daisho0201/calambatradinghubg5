@@ -465,6 +465,12 @@ def item_detail(item_id):
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
         
+        # Initialize images list with the main image
+        all_images = []
+        if item['grid_image']:
+            all_images.append(item['grid_image'])
+            print(f"Added main image: {item['grid_image']}")
+        
         # Get detail images
         cursor.execute('''
             SELECT image_url
@@ -474,31 +480,22 @@ def item_detail(item_id):
         ''', (item_id,))
         
         detail_images = cursor.fetchall()
+        print(f"Fetched detail images: {detail_images}")
         
-        # Create list of all images (main image + detail images)
-        all_images = []
-        if item['grid_image']:
-            all_images.append(item['grid_image'])
-        
+        # Add detail images to the list
         for img in detail_images:
             if img['image_url']:
                 all_images.append(img['image_url'])
+                print(f"Added detail image: {img['image_url']}")
         
-        # If no images, use default
+        # If no images at all, use default
         if not all_images:
             all_images = [DEFAULT_IMAGE_URL]
+            print("Using default image")
         
-        # Add images to item dictionary
-        item['detail_images'] = ','.join(all_images)
-        
-        print("Final item data:", {
-            'id': item['id'],
-            'name': item['name'],
-            'price': item['price'],
-            'meetup_place': item['meetup_place'],
-            'seller_phone': item['seller_phone'],
-            'images': item['detail_images']
-        })
+        # Store the list of images directly
+        item['detail_images'] = all_images
+        print(f"Final images list: {item['detail_images']}")
         
         cursor.close()
         conn.close()

@@ -89,16 +89,15 @@
         <!-- Left side: Image slideshow and description -->
         <div>
             <div class="slideshow-container">
-                <!-- Display only detail images -->
                 {% if item.detail_images %}
-                    {% for image in item.detail_images.split(',') %}
+                    {% for image_url in item.detail_images %}
                         <div class="mySlides">
-                            <img src="{{ image.strip() }}" alt="{{ item.name }}">
+                            <img src="{{ image_url }}" alt="{{ item.name }}">
                         </div>
                     {% endfor %}
                 {% else %}
                     <div class="mySlides">
-                        <p class="text-center">No additional images available for this item.</p>
+                        <img src="{{ DEFAULT_IMAGE_URL }}" alt="{{ item.name }}">
                     </div>
                 {% endif %}
             </div>
@@ -106,8 +105,8 @@
             <!-- Thumbnail navigation (optional) -->
             <div class="thumbnail-nav mt-3 d-flex justify-content-center">
                 {% if item.detail_images %}
-                    {% for image in item.detail_images.split(',') %}
-                        <img src="{{ image.strip() }}" 
+                    {% for image_url in item.detail_images %}
+                        <img src="{{ image_url }}" 
                              onclick="currentSlide({{ loop.index0 }})" 
                              class="thumbnail {% if loop.first %}active{% endif %}" 
                              alt="thumbnail">
