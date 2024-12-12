@@ -130,13 +130,17 @@ def user_info():
         )
         user_data = cursor.fetchone()
         
-        # Debug: Print user data to console
         print("User Data:", user_data)
 
-        # Fetch posted items
+        # First, let's check the table structure
+        cursor.execute("DESCRIBE items")
+        columns = cursor.fetchall()
+        print("Items table columns:", [col['Field'] for col in columns])
+
+        # Fetch posted items with the correct column names
         cursor.execute("""
             SELECT id, title as name, price, description, 
-                   COALESCE(grid_image, '/static/images/default-item.jpg') as grid_image 
+                   image_url as grid_image 
             FROM items 
             WHERE seller_id = %s
         """, (user_id,))
