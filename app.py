@@ -319,45 +319,6 @@ def get_all_items():
     conn.close()
     return items
 
-# Route for main index
-@app.route('/main_index')
-@login_required  # Ensure the user is logged in
-def main_index():
-    try:
-        print("Attempting to connect to database in main_index route...")
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        print("Executing main query...")
-        cursor.execute('''
-            SELECT id, 
-                   title as name, 
-                   price, 
-                   description,
-                   COALESCE(image_url, %s) as grid_image 
-            FROM items 
-            ORDER BY id DESC
-        ''', (DEFAULT_IMAGE_URL,))
-        
-        all_items = cursor.fetchall()
-        
-        # Debug: Print each item's details
-        for item in all_items:
-            print(f"Item {item['id']}:")
-            print(f"  Name: {item['name']}")
-            print(f"  Price: {item['price']}")
-            print(f"  Image URL: {item['grid_image']}")
-        
-        cursor.close()
-        conn.close()
-        
-        return render_template('main_index.html', all_items=all_items)
-        
-    except Exception as e:
-        print(f"Error in main_index route: {str(e)}")
-        print(traceback.format_exc())
-        return "An error occurred", 500
-
 
 @app.route('/filter_by_category/<string:category>')
 def filter_by_category(category):
