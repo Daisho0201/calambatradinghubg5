@@ -387,29 +387,67 @@ def get_items_by_category(category):
 
 @app.route('/item/<int:item_id>')
 def item_detail(item_id):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    # Join the items table with users table to get seller information including profile picture
-    cursor.execute("""
-        SELECT i.*, u.username, u.profile_picture 
-        FROM items i 
-        LEFT JOIN users u ON i.user_id = u.id 
-        WHERE i.id = %s
-    """, (item_id,))
-    
-    item = cursor.fetchone()
-    
-    if item:
-        # Convert the quality value to a more readable format
-        item_quality = item['quality'].replace('_', ' ').title()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Debug print
+        print(f"Fetching details for item ID: {item_id}")
+        
+        # Get item details with all required fields
+        cursor.execute('''
+            SELECT i.id,
+                   i.title as name,
+                   i.price,
+                   i.description,
+                   i.seller_id,
+                   i.image_url as grid_image,
+                   i.meetup_place,
+                   i.seller_phone,
+                   u.username,
+                   u.profile_picture,
+                   'Used - Good' as item_quality,  -- Default value for now
+                   GROUP_CONCAT(DISTINCT di.image_url) as detail_images
+            FROM items i
+            LEFT JOIN users u ON i.seller_id = u.id
+            LEFT JOIN detail_images di ON i.id = di.item_id
+            WHERE i.id = %s
+            GROUP BY i.id
+        ''', (item_id,))
+        
+        item = cursor.fetchone()
+        
+        # Debug print
+        print(f"Item details: {item}")
+        
+        if item is None:
+            print(f"No item found with ID: {item_id}")
+            return "Item not found", 404
+            
+        # If no image_url, use default
+        if not item['grid_image']:
+            item['grid_image'] = DEFAULT_IMAGE_URL
+            
+        # Convert detail_images string to list if it exists
+        if item.get('detail_images'):
+            item['detail_images'] = item['detail_images'].split(',')
+        else:
+            item['detail_images'] = []
+            
         cursor.close()
         conn.close()
-        return render_template('item_detail.html', item=item, item_quality=item_quality)
-    else:
-        cursor.close()
-        conn.close()
-        return "Item not found", 404
+        
+        # Pass all required variables to template
+        return render_template('item_detail.html', 
+                            item=item,
+                            item_quality=item.get('item_quality', 'Used - Good'))
+        
+    except Exception as e:
+        print(f"Error in item_detail route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 
@@ -937,6 +975,35 @@ def update_users_table():
 # Call this function when your app starts
 # Add this near the bottom of your file, before the if __name__ == '__main__': line
 update_users_table()
+
+# Add this function to create necessary tables if they don't exist
+def create_detail_images_table():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Create detail_images table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS detail_images (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            item_id INT NOT NULL,
+            image_url VARCHAR(255) NOT NULL,
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        )
+    ''')
+    
+    # Add meetup_place and seller_phone columns to items table if they don't exist
+    try:
+        cursor.execute("ALTER TABLE items ADD COLUMN IF NOT EXISTS meetup_place VARCHAR(255)")
+        cursor.execute("ALTER TABLE items ADD COLUMN IF NOT EXISTS seller_phone VARCHAR(20)")
+    except Exception as e:
+        print(f"Note: {e}")
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+# Call this when the app starts
+create_detail_images_table()
 
 
 if __name__ == '__main__':
