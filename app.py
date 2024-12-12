@@ -80,17 +80,11 @@ def create_items_table():
     cursor.execute(''' 
         CREATE TABLE IF NOT EXISTS items (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            price DECIMAL(10, 2) NOT NULL,
-            description TEXT NOT NULL,
-            quality ENUM('new', 'used_like_new', 'used_good', 'used_fair') NOT NULL,
-            category VARCHAR(100) NOT NULL,
-            meetup_place VARCHAR(255) NOT NULL,
-            seller_phone VARCHAR(15) NOT NULL,
-            grid_image VARCHAR(255),
-            detail_images TEXT,
-            user_id INT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            price DECIMAL(10,2) NOT NULL,
+            seller_id INT NOT NULL,
+            image_url VARCHAR(255)
         )
     ''')
     conn.commit()
@@ -308,13 +302,26 @@ def main_index():
         print("Creating cursor...")
         cursor = conn.cursor(dictionary=True)
         
-        print("Executing query...")
+        # First, let's try to add the image_url column
+        try:
+            print("Adding image_url column if it doesn't exist...")
+            cursor.execute("""
+                ALTER TABLE items 
+                ADD COLUMN image_url VARCHAR(255)
+            """)
+            conn.commit()
+            print("Column added successfully or already exists")
+        except Exception as e:
+            print(f"Note about column addition: {e}")
+            conn.rollback()
+        
+        print("Executing main query...")
         cursor.execute('''
             SELECT id, 
                    title as name, 
                    price, 
                    description,
-                   COALESCE(image_url, '/static/images/default-item.jpg') as grid_image 
+                   '/static/images/default-item.jpg' as grid_image 
             FROM items 
             ORDER BY id DESC
         ''')
