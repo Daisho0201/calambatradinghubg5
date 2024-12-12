@@ -132,19 +132,16 @@ def user_info():
         
         print("User Data:", user_data)
 
-        # First, let's check the table structure
-        cursor.execute("DESCRIBE items")
-        columns = cursor.fetchall()
-        print("Items table columns:", [col['Field'] for col in columns])
-
-        # Fetch posted items with the correct column names
+        # Fetch posted items with only the columns that exist
         cursor.execute("""
-            SELECT id, title as name, price, description, 
-                   image_url as grid_image 
+            SELECT id, title as name, price, description,
+                   '/static/images/default-item.jpg' as grid_image 
             FROM items 
             WHERE seller_id = %s
         """, (user_id,))
         posted_items = cursor.fetchall()
+        
+        print("Posted Items:", posted_items)  # Debug: Print posted items
 
         cursor.close()
         conn.close()
