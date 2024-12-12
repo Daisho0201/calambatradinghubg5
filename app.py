@@ -354,9 +354,11 @@ def filter_by_category(category):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
+        # Adjust the SQL query based on the category
         if category == 'all':
             cursor.execute('SELECT * FROM items ORDER BY id DESC')
         else:
+            # Filter items based on the specified category
             cursor.execute('''
                 SELECT * FROM items 
                 WHERE category = %s 
@@ -364,7 +366,15 @@ def filter_by_category(category):
             ''', (category,))
 
         filtered_items = cursor.fetchall()
-        print(f"Filtered items for category '{category}': {filtered_items}")  # Debugging output
+        print(f"Filtered items for category '{category}': {filtered_items}")
+
+        # If no items are found for the specified category, you can handle it here
+        if not filtered_items:
+            # Optionally, you can fetch all items or provide a message
+            print(f"No items found for category '{category}'.")
+            # Uncomment the next line if you want to show all items when none are found
+            # cursor.execute('SELECT * FROM items ORDER BY id DESC')
+            # filtered_items = cursor.fetchall()
 
         cursor.close()
         conn.close()
@@ -373,6 +383,9 @@ def filter_by_category(category):
 
     except Exception as e:
         print(f"Error in filter_by_category route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return "An error occurred", 500
 
 def get_items_by_category(category):
