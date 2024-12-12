@@ -193,46 +193,49 @@ def homepage():
         return render_template('homepage.html')  # Render the login page if not logged in
 
 # Route for searching and filtering items
-@app.route('/search', methods=['GET'])
+@app.route('/search')
 def search():
-    query = request.args.get('query', '').lower()  # Get the search query
-    min_price = request.args.get('min_price', type=int)  # Get min price filter
-    max_price = request.args.get('max_price', type=int)  # Get max price filter
-    quality = request.args.get('quality')  # Get quality filter
-    category = request.args.get('category')  # Get category filter
+    try:
+        query = request.args.get('query', '')
+        print(f"Search query: {query}")
 
-    # Start building the SQL query
-    sql = "SELECT * FROM items WHERE LOWER(name) LIKE %s OR LOWER(description) LIKE %s"
-    params = ['%' + query + '%', '%' + query + '%']
+        if not query:
+            return redirect(url_for('main_index'))
 
-    # Add price filters if provided
-    if min_price is not None:
-        sql += " AND price >= %s"
-        params.append(min_price)
-    
-    if max_price is not None:
-        sql += " AND price <= %s"
-        params.append(max_price)
-
-    # Add quality filter if provided and not "all"
-    if quality and quality != 'all':
-        sql += " AND quality = %s"
-        params.append(quality)
-
-    # Add category filter if provided and not "all"
-    if category and category != 'all':
-        sql += " AND category = %s"
-        params.append(category)
-
-    # Execute the query
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(sql, tuple(params))
-    results = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return render_template('search_results.html', query=query, results=results, category=category, quality=quality, min_price=min_price, max_price=max_price)
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Search in title and description
+        search_term = f"%{query}%"
+        cursor.execute('''
+            SELECT i.id,
+                   i.title as name,
+                   i.price,
+                   i.image_url as grid_image,
+                   i.date_posted,
+                   i.popularity
+            FROM items i
+            WHERE i.title LIKE %s 
+               OR i.description LIKE %s
+            ORDER BY i.id DESC
+        ''', (search_term, search_term))
+        
+        results = cursor.fetchall()
+        print(f"Found {len(results)} results")
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('search_results.html', 
+                             query=query,
+                             results=results)
+                             
+    except Exception as e:
+        print(f"Error in search route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 # Route to update an item
