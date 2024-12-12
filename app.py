@@ -291,7 +291,7 @@ def main_index():
         cursor = conn.cursor(dictionary=True)
         
         print("Executing query...")
-        cursor.execute('SELECT id, name, price, grid_image FROM items ORDER BY created_at DESC')
+        cursor.execute('SELECT id, item_name as name, item_price as price, image_url as grid_image FROM items ORDER BY created_at DESC')
         
         print("Fetching results...")
         all_items = cursor.fetchall()
