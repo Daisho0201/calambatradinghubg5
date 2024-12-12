@@ -354,11 +354,17 @@ def filter_by_category(category):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # If the category is 'all', fetch all items
+        # Adjust the SQL query based on the category
         if category == 'all':
             cursor.execute('SELECT * FROM items ORDER BY id DESC')
         else:
-            cursor.execute('SELECT * FROM items WHERE category = %s ORDER BY id DESC', (category,))
+            # Use a case statement or predefined categories
+            cursor.execute('''
+                SELECT * FROM items 
+                WHERE 
+                    (category = %s OR %s = 'all') 
+                ORDER BY id DESC
+            ''', (category, category))
 
         filtered_items = cursor.fetchall()
         print(f"Filtered items for category '{category}': {filtered_items}")
