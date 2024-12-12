@@ -284,18 +284,30 @@ def get_all_items():
 @login_required  # Ensure the user is logged in
 def main_index():
     try:
-        # Get all items from the database
+        print("Attempting to connect to database in main_index route...")
         conn = get_db_connection()
+        
+        print("Creating cursor...")
         cursor = conn.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM items ORDER BY created_at DESC')
+        
+        print("Executing query...")
+        cursor.execute('SELECT id, name, price, grid_image FROM items ORDER BY created_at DESC')
+        
+        print("Fetching results...")
         all_items = cursor.fetchall()
+        
+        print(f"Found {len(all_items) if all_items else 0} items")
+        
         cursor.close()
         conn.close()
         
-        # Pass the items to the template
         return render_template('main_index.html', all_items=all_items)
+        
     except Exception as e:
         print(f"Error in main_index route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return "An error occurred", 500
 
 
