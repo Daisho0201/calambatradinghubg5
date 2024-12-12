@@ -197,27 +197,28 @@ def homepage():
 def search():
     try:
         query = request.args.get('query', '')
-        print(f"Search query: {query}")
+        print(f"Search query received: {query}")
 
         if not query:
+            print("No query provided, redirecting to main index")
             return redirect(url_for('main_index'))
 
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Search in title and description
+        # Basic search query with only existing columns
         search_term = f"%{query}%"
         cursor.execute('''
-            SELECT i.id,
-                   i.title as name,
-                   i.price,
-                   i.image_url as grid_image,
-                   i.date_posted,
-                   i.popularity
+            SELECT 
+                i.id,
+                i.title as name,
+                i.price,
+                i.image_url as grid_image,
+                u.username
             FROM items i
+            LEFT JOIN users u ON i.seller_id = u.id
             WHERE i.title LIKE %s 
                OR i.description LIKE %s
-            ORDER BY i.id DESC
         ''', (search_term, search_term))
         
         results = cursor.fetchall()
