@@ -180,7 +180,7 @@ def main_index():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute('SELECT id, title as name, price, image_url as grid_image FROM items ORDER BY id DESC')
+        cursor.execute('SELECT * FROM items ORDER BY id DESC')
         all_items = cursor.fetchall()
 
         cursor.close()
