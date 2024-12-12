@@ -385,16 +385,39 @@ def get_items_by_category(category):
             connection.close()
 
 
+def add_item_columns():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Add new columns if they don't exist
+        cursor.execute("""
+            ALTER TABLE items 
+            ADD COLUMN IF NOT EXISTS meetup_place VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS seller_phone VARCHAR(20)
+        """)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Successfully added new columns to items table")
+        
+    except Exception as e:
+        print(f"Error adding columns: {str(e)}")
+
 @app.route('/item/<int:item_id>')
 def item_detail(item_id):
     try:
+        # First ensure the columns exist
+        add_item_columns()
+        
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
         # Debug print
         print(f"Fetching details for item ID: {item_id}")
         
-        # Get item details with all required fields
+        # Simplified query with only existing columns
         cursor.execute('''
             SELECT i.id,
                    i.title as name,
@@ -405,42 +428,35 @@ def item_detail(item_id):
                    i.meetup_place,
                    i.seller_phone,
                    u.username,
-                   u.profile_picture,
-                   'Used - Good' as item_quality,  -- Default value for now
-                   GROUP_CONCAT(DISTINCT di.image_url) as detail_images
+                   u.profile_picture
             FROM items i
             LEFT JOIN users u ON i.seller_id = u.id
-            LEFT JOIN detail_images di ON i.id = di.item_id
             WHERE i.id = %s
-            GROUP BY i.id
         ''', (item_id,))
         
         item = cursor.fetchone()
-        
-        # Debug print
-        print(f"Item details: {item}")
+        print(f"Fetched item: {item}")
         
         if item is None:
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
             
-        # If no image_url, use default
-        if not item['grid_image']:
-            item['grid_image'] = DEFAULT_IMAGE_URL
-            
-        # Convert detail_images string to list if it exists
-        if item.get('detail_images'):
-            item['detail_images'] = item['detail_images'].split(',')
-        else:
-            item['detail_images'] = []
-            
+        # Set default values for missing fields
+        item.setdefault('meetup_place', 'To be discussed')
+        item.setdefault('seller_phone', 'Contact through chat')
+        item.setdefault('grid_image', DEFAULT_IMAGE_URL)
+        item.setdefault('detail_images', [])
+        item.setdefault('username', 'Anonymous')
+        
+        # Add a default item quality
+        item_quality = 'Used - Good'
+        
         cursor.close()
         conn.close()
         
-        # Pass all required variables to template
         return render_template('item_detail.html', 
-                            item=item,
-                            item_quality=item.get('item_quality', 'Used - Good'))
+                             item=item,
+                             item_quality=item_quality)
         
     except Exception as e:
         print(f"Error in item_detail route: {str(e)}")
