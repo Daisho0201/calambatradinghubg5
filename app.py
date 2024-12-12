@@ -265,13 +265,27 @@ def update_item(item_id):
 @app.route('/delete_item/<int:item_id>', methods=['POST'])
 @login_required
 def delete_item(item_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM items WHERE id = %s AND user_id = %s", (item_id, session['user_id']))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return redirect(url_for('user_info'))
+    try:
+        user_id = session.get('user_id')
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Delete the item from the database
+        cursor.execute('DELETE FROM items WHERE id = %s AND seller_id = %s', (item_id, user_id))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        print(f"Item with ID {item_id} marked as sold by user {user_id}.")
+        return redirect(url_for('user_info'))  # Redirect back to user info page
+
+    except Exception as e:
+        print(f"Error in delete_item route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 # Function to get user items
