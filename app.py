@@ -290,13 +290,21 @@ def main_index():
         print("Creating cursor...")
         cursor = conn.cursor(dictionary=True)
         
+        # First, let's see what columns we have
+        print("Checking table structure...")
+        cursor.execute("DESCRIBE items")
+        columns = cursor.fetchall()
+        print("Table columns:", [col['Field'] for col in columns])
+        
         print("Executing query...")
-        cursor.execute('SELECT id, item_name as name, item_price as price, image_url as grid_image FROM items ORDER BY created_at DESC')
+        # Use the actual column names from your table
+        cursor.execute('SELECT * FROM items ORDER BY created_at DESC')
         
         print("Fetching results...")
         all_items = cursor.fetchall()
         
         print(f"Found {len(all_items) if all_items else 0} items")
+        print("Sample item:", all_items[0] if all_items else "No items")
         
         cursor.close()
         conn.close()
