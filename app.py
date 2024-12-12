@@ -465,6 +465,12 @@ def item_detail(item_id):
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
         
+        # Initialize images list with the main image
+        all_images = []
+        if item['grid_image']:
+            all_images.append(item['grid_image'])
+            print(f"Added main image: {item['grid_image']}")
+        
         # Get detail images
         cursor.execute('''
             SELECT image_url
@@ -474,31 +480,22 @@ def item_detail(item_id):
         ''', (item_id,))
         
         detail_images = cursor.fetchall()
+        print(f"Fetched detail images: {detail_images}")
         
-        # Create list of all images (main image + detail images)
-        all_images = []
-        if item['grid_image']:
-            all_images.append(item['grid_image'])
-        
+        # Add detail images to the list
         for img in detail_images:
             if img['image_url']:
                 all_images.append(img['image_url'])
+                print(f"Added detail image: {img['image_url']}")
         
-        # If no images, use default
+        # If no images at all, use default
         if not all_images:
             all_images = [DEFAULT_IMAGE_URL]
+            print("Using default image")
         
-        # Add images to item dictionary
-        item['detail_images'] = ','.join(all_images)
-        
-        print("Final item data:", {
-            'id': item['id'],
-            'name': item['name'],
-            'price': item['price'],
-            'meetup_place': item['meetup_place'],
-            'seller_phone': item['seller_phone'],
-            'images': item['detail_images']
-        })
+        # Store the list of images directly
+        item['detail_images'] = all_images
+        print(f"Final images list: {item['detail_images']}")
         
         cursor.close()
         conn.close()
@@ -574,23 +571,35 @@ def save_item(item_id):
 
 
 @app.route('/saved_items')
+@login_required
 def saved_items():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))  # Redirect if user not logged in
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT items.* FROM items
-        JOIN saved_items ON items.id = saved_items.item_id
-        WHERE saved_items.user_id = %s
-    """, (user_id,))
-    saved_items = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return render_template('saved_items.html', saved_items=saved_items)
+    try:
+        user_id = session.get('user_id')
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch saved items for the user
+        cursor.execute('''
+            SELECT i.id, i.title as name, i.price, i.image_url as grid_image
+            FROM saved_items s
+            JOIN items i ON s.item_id = i.id
+            WHERE s.user_id = %s
+        ''', (user_id,))
+        
+        saved_items = cursor.fetchall()
+        print(f"Fetched saved items: {saved_items}")
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('saved_items.html', saved_items=saved_items)
+        
+    except Exception as e:
+        print(f"Error in saved_items route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 @app.route('/remove_saved_item/<int:item_id>', methods=['POST'])
