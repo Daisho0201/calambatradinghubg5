@@ -1140,38 +1140,6 @@ def add_category_column():
 # Call the function to add the column when the application starts
 add_category_column()
 
-@app.route('/filter_by_category/<string:category>')
-def filter_by_category(category):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # Adjust the SQL query based on the category
-        if category == 'all':
-            cursor.execute('SELECT * FROM items ORDER BY id DESC')
-        else:
-            # Filter items based on the specified category
-            cursor.execute('''
-                SELECT * FROM items 
-                WHERE category = %s 
-                ORDER BY id DESC
-            ''', (category,))
-
-        filtered_items = cursor.fetchall()
-        print(f"Filtered items for category '{category}': {filtered_items}")
-
-        cursor.close()
-        conn.close()
-
-        return render_template('main_index.html', items=filtered_items)  # Adjust the template as needed
-
-    except Exception as e:
-        print(f"Error in filter_by_category route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)  # Start the Flask application
