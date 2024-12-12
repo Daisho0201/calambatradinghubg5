@@ -76,6 +76,30 @@ def get_db_connection():
         print(f"Error details: {str(err)}")
         raise
 
+# Function to ensure the 'condition' column exists
+def ensure_condition_column_exists():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if the 'condition' column exists
+        cursor.execute("SHOW COLUMNS FROM items LIKE 'condition'")
+        result = cursor.fetchone()
+        
+        # If the column does not exist, add it
+        if not result:
+            cursor.execute("ALTER TABLE items ADD COLUMN `condition` VARCHAR(255)")
+            print("Column 'condition' added to 'items' table.")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error ensuring 'condition' column exists: {str(e)}")
+
+# Call the function to ensure the column exists when the app starts
+ensure_condition_column_exists()
+
 # Create the items table
 def create_items_table():
     conn = get_db_connection()
@@ -434,12 +458,12 @@ def item_detail(item_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Fetch item details, escaping the 'condition' column name
+        # Fetch item details
         cursor.execute('''
             SELECT 
                 id, 
                 title AS name, 
-                `condition`,  -- Escape the column name to avoid SQL syntax error
+                `condition`,  -- Ensure this matches the column name
                 seller_id, 
                 image_url AS grid_image, 
                 description,
