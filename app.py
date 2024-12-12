@@ -54,23 +54,25 @@ def allowed_file(filename):
 def get_db_connection():
     try:
         # Print environment variables (for debugging)
-        print(f"DB Host: {os.getenv('DB_HOST')}")
-        print(f"DB Port: {os.getenv('DB_PORT')}")
-        print(f"DB User: {os.getenv('DB_USER')}")
-        print(f"DB Name: {os.getenv('DB_NAME')}")
+        print("Attempting database connection...")
         
+        # Use direct connection parameters
         connection = mysql.connector.connect(
-            host=os.getenv('DB_HOST'),
-            port=int(os.getenv('DB_PORT', '28562')),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            database=os.getenv('DB_NAME'),
+            host='mysql-1eef0d0e-marketplace-e1a9.f.aivencloud.com',
+            port=28562,
+            user='avnadmin',
+            password='AVNS_1z1MpJQf9fVC_t-eNwP',
+            database='defaultdb',
             ssl_mode='REQUIRED'
         )
         print("Database connection successful!")
         return connection
     except mysql.connector.Error as err:
         print(f"Error connecting to database: {err}")
+        print(f"Connection parameters:")
+        print(f"Host: mysql-1eef0d0e-marketplace-e1a9.f.aivencloud.com")
+        print(f"Port: 28562")
+        print(f"Database: defaultdb")
         raise
 
 # Create the items table
