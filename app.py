@@ -433,77 +433,17 @@ def item_detail(item_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        print(f"Fetching details for item ID: {item_id}")
-        
-        # Get item details including meetup_place and seller_phone
-        cursor.execute('''
-            SELECT i.id,
-                   i.title as name,
-                   i.price,
-                   i.description,
-                   i.seller_id,
-                   i.image_url as grid_image,
-                   COALESCE(i.meetup_place, 'To be discussed') as meetup_place,
-                   COALESCE(i.seller_phone, 'Contact through chat') as seller_phone,
-                   u.username,
-                   u.profile_picture
-            FROM items i
-            LEFT JOIN users u ON i.seller_id = u.id
-            WHERE i.id = %s
-        ''', (item_id,))
-        
+        cursor.execute('SELECT * FROM items WHERE id = %s', (item_id,))
         item = cursor.fetchone()
-        print(f"Main item data: {item}")
-        
-        if item is None:
-            print(f"No item found with ID: {item_id}")
-            return "Item not found", 404
-        
-        # Initialize images list with the main image
-        all_images = []
-        if item['grid_image']:
-            all_images.append(item['grid_image'])
-            print(f"Added main image: {item['grid_image']}")
-        
-        # Get detail images
-        cursor.execute('''
-            SELECT image_url
-            FROM detail_images
-            WHERE item_id = %s
-            ORDER BY id
-        ''', (item_id,))
-        
-        detail_images = cursor.fetchall()
-        print(f"Fetched detail images: {detail_images}")
-        
-        # Add detail images to the list
-        for img in detail_images:
-            if img['image_url']:
-                all_images.append(img['image_url'])
-                print(f"Added detail image: {img['image_url']}")
-        
-        # If no images at all, use default
-        if not all_images:
-            all_images = [DEFAULT_IMAGE_URL]
-            print("Using default image")
-        
-        # Store the list of images directly
-        item['detail_images'] = all_images
-        print(f"Final images list: {item['detail_images']}")
-        
         cursor.close()
         conn.close()
-        
-        return render_template('item_detail.html', 
-                             item=item,
-                             item_quality='Used - Good')
-        
+
+        if item:
+            return render_template('item_detail.html', item=item)
+        else:
+            return "Item not found", 404
     except Exception as e:
-        print(f"Error in item_detail route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"Error fetching item details: {str(e)}")
         return "An error occurred", 500
 
 

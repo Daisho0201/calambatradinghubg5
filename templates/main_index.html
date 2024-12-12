@@ -124,7 +124,7 @@
                     {% for item in all_items %}
                         <div class="col">
                             <div class="card shadow-sm h-100 position-relative">
-                                <a href="{{ url_for('item_detail', item_id=item.id) }} class="text-decoration-none">
+                                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="text-decoration-none">
                                     <img src="{{ item.grid_image }}" class="card-img-top" alt="{{ item.name }}">
                                     <div class="card-body d-flex flex-column justify-content-between">
                                         <h5 class="card-title" style="margin-bottom: 45px; color: black; height: 2.4em">{{ item.name }}</h5>
