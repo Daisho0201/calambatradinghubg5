@@ -53,7 +53,7 @@ def allowed_file(filename):
 # Database connection
 def get_db_connection():
     try:
-        print("Attempting database connection with pure Python driver...")
+        print("Attempting database connection with SSL configuration...")
         
         connection = mysql.connector.connect(
             host='mysql-1eef0d0e-marketplace-e1a9.f.aivencloud.com',
@@ -62,7 +62,8 @@ def get_db_connection():
             password='AVNS_1z1MpJQf9fVC_t-eNwP',
             database='defaultdb',
             use_pure=True,
-            ssl_verify_cert=True
+            ssl_disabled=False,
+            ssl_verify_identity=False  # Disable SSL identity verification
         )
         print("Database connection successful!")
         return connection
