@@ -16,12 +16,15 @@ import cloudinary.uploader
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure Cloudinary
-cloudinary.config(
-    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-    api_key=os.getenv('CLOUDINARY_API_KEY'),
-    api_secret=os.getenv('CLOUDINARY_API_SECRET')
+# Configure Cloudinary with your credentials
+cloudinary.config( 
+    cloud_name = "devdvffal", 
+    api_key = "786597521674718", 
+    api_secret = "WNUK4s9g3rpgvArOZuQsFU2e9Cg"
 )
+
+# Default image URL (use a Cloudinary default image)
+DEFAULT_IMAGE_URL = "https://res.cloudinary.com/devdvffal/image/upload/v1/default-item.jpg"
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Required for session management
@@ -304,8 +307,6 @@ def main_index():
     try:
         print("Attempting to connect to database in main_index route...")
         conn = get_db_connection()
-        
-        print("Creating cursor...")
         cursor = conn.cursor(dictionary=True)
         
         print("Executing main query...")
@@ -314,25 +315,19 @@ def main_index():
                    title as name, 
                    price, 
                    description,
-                   CASE 
-                       WHEN image_url IS NOT NULL AND image_url != '' 
-                       THEN image_url 
-                       ELSE '/static/images/default-item.jpg' 
-                   END as grid_image 
+                   COALESCE(image_url, %s) as grid_image 
             FROM items 
             ORDER BY id DESC
-        ''')
+        ''', (DEFAULT_IMAGE_URL,))
         
-        print("Fetching results...")
         all_items = cursor.fetchall()
         
-        # Debug: Print each item's image URL
+        # Debug: Print each item's details
         for item in all_items:
-            print(f"Item {item['id']} image: {item.get('grid_image')}")
-        
-        print(f"Found {len(all_items) if all_items else 0} items")
-        if all_items:
-            print("Sample item:", all_items[0])
+            print(f"Item {item['id']}:")
+            print(f"  Name: {item['name']}")
+            print(f"  Price: {item['price']}")
+            print(f"  Image URL: {item['grid_image']}")
         
         cursor.close()
         conn.close()
@@ -341,9 +336,7 @@ def main_index():
         
     except Exception as e:
         print(f"Error in main_index route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(traceback.format_exc())
         return "An error occurred", 500
 
 
@@ -829,38 +822,39 @@ def post_item():
             seller_id = session.get('user_id')
 
             # Handle image upload
-            image_url = None
+            image_url = DEFAULT_IMAGE_URL  # Set default image
             if 'grid_image' in request.files:
                 grid_image = request.files['grid_image']
-                if grid_image and allowed_file(grid_image.filename):
+                if grid_image and grid_image.filename != '':
                     try:
-                        # Upload to Cloudinary with specific options
+                        # Upload to Cloudinary
+                        print("Attempting to upload image to Cloudinary...")
                         upload_result = cloudinary.uploader.upload(
                             grid_image,
-                            folder="item_images",  # Store in a specific folder
+                            folder="marketplace_items",
                             transformation=[
-                                {'width': 800, 'height': 600, 'crop': 'fill'},  # Resize to standard size
-                                {'quality': 'auto:good'}  # Optimize quality
+                                {'width': 800, 'height': 600, 'crop': 'fill'}
                             ]
                         )
-                        image_url = upload_result['secure_url']
-                        print(f"Image uploaded successfully: {image_url}")
-                    except Exception as e:
-                        print(f"Error uploading image: {str(e)}")
-                        print(f"Upload error details: {traceback.format_exc()}")
+                        image_url = upload_result.get('secure_url')
+                        print(f"Cloudinary upload successful. URL: {image_url}")
+                    except Exception as upload_error:
+                        print(f"Cloudinary upload error: {str(upload_error)}")
+                        print(traceback.format_exc())
 
             # Connect to database
             conn = get_db_connection()
             cursor = conn.cursor()
 
             # Insert the item with the image URL
+            print(f"Inserting item with image URL: {image_url}")
             cursor.execute('''
                 INSERT INTO items (title, price, description, seller_id, image_url)
                 VALUES (%s, %s, %s, %s, %s)
             ''', (title, price, description, seller_id, image_url))
 
             item_id = cursor.lastrowid
-            print(f"New item ID: {item_id} with image URL: {image_url}")
+            print(f"New item inserted with ID: {item_id}")
 
             conn.commit()
             cursor.close()
@@ -872,9 +866,7 @@ def post_item():
 
     except Exception as e:
         print(f"Error in post_item route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(traceback.format_exc())
         return "An error occurred", 500
 
 # Add this new route to handle profile picture updates
