@@ -180,13 +180,15 @@ def main_index():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute('SELECT * FROM items ORDER BY id DESC')
+        cursor.execute('SELECT id, title as name, price, image_url as grid_image FROM items ORDER BY id DESC')
         all_items = cursor.fetchall()
 
         cursor.close()
         conn.close()
 
-        return render_template('main_index.html', items=all_items)
+        print(f"Fetched {len(all_items)} items from the database.")  # Debugging output
+
+        return render_template('main_index.html', all_items=all_items)
 
     except Exception as e:
         print(f"Error in main_index route: {str(e)}")
