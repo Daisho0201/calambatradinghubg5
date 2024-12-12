@@ -390,17 +390,22 @@ def add_item_columns():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Add new columns if they don't exist
-        cursor.execute("""
-            ALTER TABLE items 
-            ADD COLUMN IF NOT EXISTS meetup_place VARCHAR(255),
-            ADD COLUMN IF NOT EXISTS seller_phone VARCHAR(20)
-        """)
+        # Check if the columns exist before adding them
+        cursor.execute("SHOW COLUMNS FROM items LIKE 'meetup_place'")
+        result = cursor.fetchone()
+        if not result:
+            cursor.execute("ALTER TABLE items ADD COLUMN meetup_place VARCHAR(255)")
+            print("Added column 'meetup_place'")
+        
+        cursor.execute("SHOW COLUMNS FROM items LIKE 'seller_phone'")
+        result = cursor.fetchone()
+        if not result:
+            cursor.execute("ALTER TABLE items ADD COLUMN seller_phone VARCHAR(20)")
+            print("Added column 'seller_phone'")
         
         conn.commit()
         cursor.close()
         conn.close()
-        print("Successfully added new columns to items table")
         
     except Exception as e:
         print(f"Error adding columns: {str(e)}")
