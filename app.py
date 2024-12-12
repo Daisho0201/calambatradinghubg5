@@ -433,13 +433,32 @@ def item_detail(item_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute('SELECT * FROM items WHERE id = %s', (item_id,))
+        
+        # Fetch item details
+        cursor.execute('''
+            SELECT 
+                id, 
+                title AS name, 
+                condition, 
+                seller_id, 
+                image_url AS grid_image, 
+                description,
+                meetup_place,
+                seller_phone
+            FROM items 
+            WHERE id = %s
+        ''', (item_id,))
         item = cursor.fetchone()
-        cursor.close()
-        conn.close()
 
         if item:
-            return render_template('item_detail.html', item=item)
+            # Fetch seller information
+            cursor.execute('SELECT username, profile_picture FROM users WHERE id = %s', (item['seller_id'],))
+            seller = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            # Pass the item and seller data to the template
+            return render_template('item_detail.html', item=item, seller=seller)
         else:
             return "Item not found", 404
     except Exception as e:
