@@ -434,12 +434,12 @@ def item_detail(item_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Fetch item details
+        # Fetch item details, escaping the 'condition' column name
         cursor.execute('''
             SELECT 
                 id, 
                 title AS name, 
-                condition, 
+                `condition`,  -- Escape the column name to avoid SQL syntax error
                 seller_id, 
                 image_url AS grid_image, 
                 description,
