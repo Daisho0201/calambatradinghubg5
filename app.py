@@ -436,14 +436,12 @@ def create_detail_images_table():
 @app.route('/item/<int:item_id>')
 def item_detail(item_id):
     try:
-        # Ensure all necessary tables and columns exist
-        add_item_columns()
-        create_detail_images_table()
-        
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # First get the main item details
+        print(f"Fetching details for item ID: {item_id}")
+        
+        # Get item details including meetup_place and seller_phone
         cursor.execute('''
             SELECT i.id,
                    i.title as name,
@@ -451,8 +449,8 @@ def item_detail(item_id):
                    i.description,
                    i.seller_id,
                    i.image_url as grid_image,
-                   i.meetup_place,
-                   i.seller_phone,
+                   COALESCE(i.meetup_place, 'To be discussed') as meetup_place,
+                   COALESCE(i.seller_phone, 'Contact through chat') as seller_phone,
                    u.username,
                    u.profile_picture
             FROM items i
@@ -461,13 +459,13 @@ def item_detail(item_id):
         ''', (item_id,))
         
         item = cursor.fetchone()
-        print(f"Fetched main item: {item}")
+        print(f"Main item data: {item}")
         
         if item is None:
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
         
-        # Then get the detail images
+        # Get detail images
         cursor.execute('''
             SELECT image_url
             FROM detail_images
@@ -476,30 +474,38 @@ def item_detail(item_id):
         ''', (item_id,))
         
         detail_images = cursor.fetchall()
-        print(f"Fetched detail images: {detail_images}")
         
-        # Convert detail_images to the format expected by the template
-        item['detail_images'] = [img['image_url'] for img in detail_images] if detail_images else []
+        # Create list of all images (main image + detail images)
+        all_images = []
+        if item['grid_image']:
+            all_images.append(item['grid_image'])
         
-        # If no detail images, use the main image
-        if not item['detail_images'] and item['grid_image']:
-            item['detail_images'] = [item['grid_image']]
-            
-        # Set default values for missing fields
-        item.setdefault('meetup_place', 'To be discussed')
-        item.setdefault('seller_phone', 'Contact through chat')
-        item.setdefault('grid_image', DEFAULT_IMAGE_URL)
-        item.setdefault('username', 'Anonymous')
+        for img in detail_images:
+            if img['image_url']:
+                all_images.append(img['image_url'])
         
-        # Add a default item quality
-        item_quality = 'Used - Good'
+        # If no images, use default
+        if not all_images:
+            all_images = [DEFAULT_IMAGE_URL]
+        
+        # Add images to item dictionary
+        item['detail_images'] = ','.join(all_images)
+        
+        print("Final item data:", {
+            'id': item['id'],
+            'name': item['name'],
+            'price': item['price'],
+            'meetup_place': item['meetup_place'],
+            'seller_phone': item['seller_phone'],
+            'images': item['detail_images']
+        })
         
         cursor.close()
         conn.close()
         
         return render_template('item_detail.html', 
                              item=item,
-                             item_quality=item_quality)
+                             item_quality='Used - Good')
         
     except Exception as e:
         print(f"Error in item_detail route: {str(e)}")
@@ -916,6 +922,8 @@ def post_item():
             title = request.form['item_name']
             price = request.form['item_price']
             description = request.form['item_desc']
+            meetup_place = request.form.get('meetup_place', 'To be discussed')  # New field
+            seller_phone = request.form.get('seller_phone', 'Contact through chat')  # New field
             seller_id = session.get('user_id')
             
             # Handle main image upload
@@ -933,11 +941,11 @@ def post_item():
             conn = get_db_connection()
             cursor = conn.cursor()
 
-            # Insert the main item
+            # Insert the main item with meetup_place and seller_phone
             cursor.execute('''
-                INSERT INTO items (title, price, description, seller_id, image_url)
-                VALUES (%s, %s, %s, %s, %s)
-            ''', (title, price, description, seller_id, image_url))
+                INSERT INTO items (title, price, description, seller_id, image_url, meetup_place, seller_phone)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (title, price, description, seller_id, image_url, meetup_place, seller_phone))
             
             item_id = cursor.lastrowid
             print(f"New item inserted with ID: {item_id}")
