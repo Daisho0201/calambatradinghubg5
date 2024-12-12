@@ -80,11 +80,17 @@ def create_items_table():
     cursor.execute(''' 
         CREATE TABLE IF NOT EXISTS items (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(255) NOT NULL,
-            description TEXT,
-            price DECIMAL(10,2) NOT NULL,
-            seller_id INT NOT NULL,
-            image_url VARCHAR(255)
+            name VARCHAR(255) NOT NULL,
+            price DECIMAL(10, 2) NOT NULL,
+            description TEXT NOT NULL,
+            quality ENUM('new', 'used_like_new', 'used_good', 'used_fair') NOT NULL,
+            category VARCHAR(100) NOT NULL,
+            meetup_place VARCHAR(255) NOT NULL,
+            seller_phone VARCHAR(15) NOT NULL,
+            grid_image VARCHAR(255),
+            detail_images TEXT,
+            user_id INT,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
     conn.commit()
@@ -302,32 +308,27 @@ def main_index():
         print("Creating cursor...")
         cursor = conn.cursor(dictionary=True)
         
-        # First, let's try to add the image_url column
-        try:
-            print("Adding image_url column if it doesn't exist...")
-            cursor.execute("""
-                ALTER TABLE items 
-                ADD COLUMN image_url VARCHAR(255)
-            """)
-            conn.commit()
-            print("Column added successfully or already exists")
-        except Exception as e:
-            print(f"Note about column addition: {e}")
-            conn.rollback()
-        
         print("Executing main query...")
         cursor.execute('''
             SELECT id, 
                    title as name, 
                    price, 
                    description,
-                   '/static/images/default-item.jpg' as grid_image 
+                   CASE 
+                       WHEN image_url IS NOT NULL AND image_url != '' 
+                       THEN image_url 
+                       ELSE '/static/images/default-item.jpg' 
+                   END as grid_image 
             FROM items 
             ORDER BY id DESC
         ''')
         
         print("Fetching results...")
         all_items = cursor.fetchall()
+        
+        # Debug: Print each item's image URL
+        for item in all_items:
+            print(f"Item {item['id']} image: {item.get('grid_image')}")
         
         print(f"Found {len(all_items) if all_items else 0} items")
         if all_items:
@@ -833,26 +834,24 @@ def post_item():
                 grid_image = request.files['grid_image']
                 if grid_image and allowed_file(grid_image.filename):
                     try:
-                        # Upload to Cloudinary
-                        upload_result = cloudinary.uploader.upload(grid_image)
+                        # Upload to Cloudinary with specific options
+                        upload_result = cloudinary.uploader.upload(
+                            grid_image,
+                            folder="item_images",  # Store in a specific folder
+                            transformation=[
+                                {'width': 800, 'height': 600, 'crop': 'fill'},  # Resize to standard size
+                                {'quality': 'auto:good'}  # Optimize quality
+                            ]
+                        )
                         image_url = upload_result['secure_url']
                         print(f"Image uploaded successfully: {image_url}")
                     except Exception as e:
                         print(f"Error uploading image: {str(e)}")
+                        print(f"Upload error details: {traceback.format_exc()}")
 
             # Connect to database
             conn = get_db_connection()
             cursor = conn.cursor()
-
-            # First, let's add the image_url column if it doesn't exist
-            try:
-                cursor.execute("""
-                    ALTER TABLE items 
-                    ADD COLUMN IF NOT EXISTS image_url VARCHAR(255)
-                """)
-                conn.commit()
-            except Exception as e:
-                print(f"Error adding image_url column: {e}")
 
             # Insert the item with the image URL
             cursor.execute('''
@@ -861,7 +860,7 @@ def post_item():
             ''', (title, price, description, seller_id, image_url))
 
             item_id = cursor.lastrowid
-            print(f"New item ID: {item_id}")
+            print(f"New item ID: {item_id} with image URL: {image_url}")
 
             conn.commit()
             cursor.close()
