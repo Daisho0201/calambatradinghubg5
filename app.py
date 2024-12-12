@@ -571,23 +571,35 @@ def save_item(item_id):
 
 
 @app.route('/saved_items')
+@login_required
 def saved_items():
-    user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))  # Redirect if user not logged in
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT items.* FROM items
-        JOIN saved_items ON items.id = saved_items.item_id
-        WHERE saved_items.user_id = %s
-    """, (user_id,))
-    saved_items = cursor.fetchall()
-    cursor.close()
-    conn.close()
-
-    return render_template('saved_items.html', saved_items=saved_items)
+    try:
+        user_id = session.get('user_id')
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Fetch saved items for the user
+        cursor.execute('''
+            SELECT i.id, i.title as name, i.price, i.image_url as grid_image
+            FROM saved_items s
+            JOIN items i ON s.item_id = i.id
+            WHERE s.user_id = %s
+        ''', (user_id,))
+        
+        saved_items = cursor.fetchall()
+        print(f"Fetched saved items: {saved_items}")
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('saved_items.html', saved_items=saved_items)
+        
+    except Exception as e:
+        print(f"Error in saved_items route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
 
 @app.route('/remove_saved_item/<int:item_id>', methods=['POST'])
