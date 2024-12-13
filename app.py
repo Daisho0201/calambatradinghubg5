@@ -270,9 +270,17 @@ def delete_item(item_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # Debug print to check the user_id and item_id
+        print(f"User ID: {user_id} is attempting to delete item ID: {item_id}")
+
         # Delete the item from the database
         cursor.execute('DELETE FROM items WHERE id = %s AND seller_id = %s', (item_id, user_id))
         conn.commit()
+
+        # Check if any rows were affected
+        if cursor.rowcount == 0:
+            print(f"No item found with ID {item_id} for user {user_id}.")
+            return "Item not found or you do not have permission to delete this item.", 404
 
         cursor.close()
         conn.close()
