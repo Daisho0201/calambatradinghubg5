@@ -104,37 +104,54 @@ def create_items_table():
 proofs_data = []
 
 # Route for user information
-@app.route('/user_info', methods=['GET', 'POST'])
+@app.route('/user_info')
 @login_required
 def user_info():
-    if request.method == 'POST':
-        # Get the updated user information from the form
-        first_name = request.form.get('first_name')
-        last_name = request.form.get('last_name')
-        username = request.form.get('username')
-        email = request.form.get('email')
+    try:
+        user_id = session.get('user_id')
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Get user information
+        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
+        user = cursor.fetchone()
+        
+        # Get user's posted items with images
+        cursor.execute('''
+            SELECT 
+                id,
+                title as name,
+                price,
+                image_url as grid_image,
+                description
+            FROM items 
+            WHERE seller_id = %s 
+            ORDER BY id DESC
+        ''', (user_id,))
+        
+        posted_items = cursor.fetchall()  # Changed from listed_items to posted_items
+        print(f"Found {len(posted_items)} items for user {user_id}")
+        
+        # Debug print for the first item
+        if posted_items:
+            print(f"First item data: {posted_items[0]}")
+            print(f"First item image URL: {posted_items[0].get('grid_image')}")
+        
+        cursor.close()
+        conn.close()
+        
+        return render_template('user_info.html', 
+                             user=user,
+                             posted_items=posted_items)  # Changed to match template
+                             
+    except Exception as e:
+        print(f"Error in user_info route: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return "An error occurred", 500
 
-        # Logic to update user information in the database
-        # For example, assuming you have a function to update user info:
-        # update_user_info(current_user.id, first_name, last_name, username, email)
 
-        # Redirect back to the user info page after updating
-        return redirect(url_for('user_info'))
-
-    # Handle GET request to display user info
-    return render_template('user_info.html', user=current_user)
-
-def update_user_info(user_id, first_name, last_name, username, email):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        UPDATE users
-        SET first_name = %s, last_name = %s, username = %s, email = %s
-        WHERE id = %s
-    ''', (first_name, last_name, username, email, user_id))
-    conn.commit()
-    cursor.close()
-    conn.close()
 
 # User class for Flask-Login
 class User(UserMixin):
