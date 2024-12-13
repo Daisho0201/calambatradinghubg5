@@ -76,6 +76,30 @@ def get_db_connection():
         print(f"Error details: {str(err)}")
         raise
 
+# Function to ensure the 'condition' column exists
+def ensure_condition_column_exists():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check if the 'condition' column exists
+        cursor.execute("SHOW COLUMNS FROM items LIKE 'condition'")
+        result = cursor.fetchone()
+        
+        # If the column does not exist, add it
+        if not result:
+            cursor.execute("ALTER TABLE items ADD COLUMN `condition` VARCHAR(255)")
+            print("Column 'condition' added to 'items' table.")
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error ensuring 'condition' column exists: {str(e)}")
+
+# Call the function to ensure the column exists when the app starts
+ensure_condition_column_exists()
+
 # Create the items table
 def create_items_table():
     conn = get_db_connection()
@@ -163,24 +187,36 @@ class User(UserMixin):
 
 # Index route to display homepage
 @app.route('/')
-def index():
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)  # Use dictionary cursor for named access
-    cursor.execute("SELECT * FROM items")  # Fetch all items from the database
-    items = cursor.fetchall()  # Get all items as a list of dictionaries
-    cursor.close()
-    conn.close()
-    return render_template('homepage.html', items=items)
-
-# Homepage route
-@app.route('/homepage')
 def homepage():
+    # Check if the user is logged in
+    if 'user_id' in session:  # Assuming you store user ID in session
+        return redirect(url_for('main_index'))  # Redirect to main index if logged in
+    return render_template('homepage.html')  # Render the login page if not logged in
 
-    # Check if 'user_id' exists in the session
-    if session.get('user_id'):  # Safely access 'user_id' using get()
-        return redirect(url_for('main_index'))  # Redirect to main_index if user is logged in
-    else:
-        return render_template('homepage.html')  # Render the login page if not logged in
+@app.route('/main_index')
+def main_index():
+    # This route should only be accessible if the user is logged in
+    if 'user_id' not in session:
+        return redirect(url_for('homepage'))  # Redirect to homepage if not logged in
+
+    # Fetch items and render the main index
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        cursor.execute('SELECT id, title as name, price, image_url as grid_image FROM items ORDER BY id DESC')
+        all_items = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        print(f"Fetched {len(all_items)} items from the database.")  # Debugging output
+
+        return render_template('main_index.html', all_items=all_items)
+
+    except Exception as e:
+        print(f"Error in main_index route: {str(e)}")
+        return "An error occurred", 500
 
 # Route for searching and filtering items
 @app.route('/search')
@@ -273,8 +309,8 @@ def delete_item(item_id):
         # Debug print to check the user_id and item_id
         print(f"User ID: {user_id} is attempting to delete item ID: {item_id}")
 
-        # First, delete related saved items
-        cursor.execute('DELETE FROM saved_items WHERE item_id = %s', (item_id,))
+        # First, delete related images from detail_images
+        cursor.execute('DELETE FROM detail_images WHERE item_id = %s', (item_id,))
         
         # Now delete the item from the items table
         cursor.execute('DELETE FROM items WHERE id = %s AND seller_id = %s', (item_id, user_id))
@@ -319,58 +355,33 @@ def get_all_items():
     conn.close()
     return items
 
-# Route for main index
-@app.route('/main_index')
-@login_required  # Ensure the user is logged in
-def main_index():
+
+@app.route('/filter_by_category/<string:category>')
+def filter_by_category(category):
     try:
-        print("Attempting to connect to database in main_index route...")
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        print("Executing main query...")
-        cursor.execute('''
-            SELECT id, 
-                   title as name, 
-                   price, 
-                   description,
-                   COALESCE(image_url, %s) as grid_image 
-            FROM items 
-            ORDER BY id DESC
-        ''', (DEFAULT_IMAGE_URL,))
-        
-        all_items = cursor.fetchall()
-        
-        # Debug: Print each item's details
-        for item in all_items:
-            print(f"Item {item['id']}:")
-            print(f"  Name: {item['name']}")
-            print(f"  Price: {item['price']}")
-            print(f"  Image URL: {item['grid_image']}")
-        
+
+        if category == 'all':
+            cursor.execute('SELECT * FROM items ORDER BY id DESC')
+        else:
+            cursor.execute('''
+                SELECT * FROM items 
+                WHERE category = %s 
+                ORDER BY id DESC
+            ''', (category,))
+
+        filtered_items = cursor.fetchall()
+        print(f"Filtered items for category '{category}': {filtered_items}")
+
         cursor.close()
         conn.close()
-        
-        return render_template('main_index.html', all_items=all_items)
-        
+
+        return render_template('main_index.html', items=filtered_items)  # Pass filtered items to the template
+
     except Exception as e:
-        print(f"Error in main_index route: {str(e)}")
-        print(traceback.format_exc())
+        print(f"Error in filter_by_category route: {str(e)}")
         return "An error occurred", 500
-
-
-@app.route('/filter/<category>', methods=['GET'])
-@login_required
-def filter_by_category(category):
-    user_id = session['user_id']
-    user_items = get_user_items(user_id)
-    
-    if category == 'all':
-        all_items = get_all_items()
-    else:
-        all_items = get_items_by_category(category)  # Fetch items filtered by category
-    
-    return render_template('main_index.html', user_items=user_items, all_items=all_items)
 
 def get_items_by_category(category):
     connection = None  # Initialize connection variable here to avoid reference errors
@@ -458,70 +469,52 @@ def item_detail(item_id):
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
+        # Debug print
         print(f"Fetching details for item ID: {item_id}")
         
-        # Get item details including meetup_place and seller_phone
+        # Get item details with all required fields
         cursor.execute('''
             SELECT i.id,
-                   i.title as name,
+                   i.title AS name,
                    i.price,
                    i.description,
                    i.seller_id,
-                   i.image_url as grid_image,
-                   COALESCE(i.meetup_place, 'To be discussed') as meetup_place,
-                   COALESCE(i.seller_phone, 'Contact through chat') as seller_phone,
+                   COALESCE(i.image_url, %s) AS grid_image,  -- Use default if image_url is None
+                   i.meetup_place,
+                   i.seller_phone,
                    u.username,
-                   u.profile_picture
+                   u.profile_picture,
+                   'Used - Good' AS item_quality,  -- Default value for now
+                   GROUP_CONCAT(DISTINCT di.image_url) AS detail_images
             FROM items i
             LEFT JOIN users u ON i.seller_id = u.id
+            LEFT JOIN detail_images di ON i.id = di.item_id
             WHERE i.id = %s
-        ''', (item_id,))
+            GROUP BY i.id
+        ''', (DEFAULT_IMAGE_URL, item_id))
         
         item = cursor.fetchone()
-        print(f"Main item data: {item}")
+        
+        # Debug print
+        print(f"Item details: {item}")
         
         if item is None:
             print(f"No item found with ID: {item_id}")
             return "Item not found", 404
-        
-        # Initialize images list with the main image
-        all_images = []
-        if item['grid_image']:
-            all_images.append(item['grid_image'])
-            print(f"Added main image: {item['grid_image']}")
-        
-        # Get detail images
-        cursor.execute('''
-            SELECT image_url
-            FROM detail_images
-            WHERE item_id = %s
-            ORDER BY id
-        ''', (item_id,))
-        
-        detail_images = cursor.fetchall()
-        print(f"Fetched detail images: {detail_images}")
-        
-        # Add detail images to the list
-        for img in detail_images:
-            if img['image_url']:
-                all_images.append(img['image_url'])
-                print(f"Added detail image: {img['image_url']}")
-        
-        # If no images at all, use default
-        if not all_images:
-            all_images = [DEFAULT_IMAGE_URL]
-            print("Using default image")
-        
-        # Store the list of images directly
-        item['detail_images'] = all_images
-        print(f"Final images list: {item['detail_images']}")
-        
+            
+        # Convert detail_images string to list if it exists
+        if item.get('detail_images'):
+            item['detail_images'] = item['detail_images'].split(',')
+        else:
+            item['detail_images'] = []
+            
         cursor.close()
         conn.close()
         
+        # Pass all required variables to template
         return render_template('item_detail.html', 
-                             item=item,
-                             item_quality='Used - Good')
+                               item=item,
+                               item_quality=item.get('item_quality', 'Used - Good'))
         
     except Exception as e:
         print(f"Error in item_detail route: {str(e)}")
@@ -1108,8 +1101,30 @@ def create_detail_images_table():
 # Call this when the app starts
 create_detail_images_table()
 
+def add_category_column():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Check if the category column exists
+        cursor.execute("SHOW COLUMNS FROM items LIKE 'category'")
+        result = cursor.fetchone()
+
+        # If the column does not exist, add it
+        if not result:
+            cursor.execute("ALTER TABLE items ADD COLUMN category VARCHAR(255)")
+            print("Category column added to items table.")
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    except Error as e:
+        print(f"Error while adding category column: {str(e)}")
+
+# Call the function to add the column when the application starts
+add_category_column()
+
 
 if __name__ == '__main__':
     app.run(debug=True)  # Start the Flask application
-
-
