@@ -309,7 +309,10 @@ def delete_item(item_id):
         # Debug print to check the user_id and item_id
         print(f"User ID: {user_id} is attempting to delete item ID: {item_id}")
 
-        # First, delete related images from detail_images
+        # First, delete related saved items
+        cursor.execute('DELETE FROM saved_items WHERE item_id = %s', (item_id,))
+        
+        # Then delete related images from detail_images
         cursor.execute('DELETE FROM detail_images WHERE item_id = %s', (item_id,))
         
         # Now delete the item from the items table
