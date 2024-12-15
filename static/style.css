@@ -1,27 +1,61 @@
-/* ====================================
-   1. ROOT VARIABLES
-==================================== */
 :root {
   --primary-red: #D10024;
   --dark-bg: #15161D;
   --secondary-dark: #1E1F29;
-  --white: #FFFFFF;
-  --shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-/* ====================================
- 2. HEADER & NAVIGATION
-==================================== */
-/* Top Bar */
+/* Top Bar Styles */
 .top-bar {
   background-color: var(--secondary-dark);
-  color: var(--white);
+  color: white;
   padding: 10px 0;
 }
 
-/* Logo */
+/* Highlight invalid fields with a red border and exclamation icon */
+.is-invalid {
+  border-color: red;
+}
+
+.error {
+  color: red;
+  font-size: 12px;
+  display: none;
+  margin-bottom: 5px;
+  text-align: left;
+  position: absolute;
+  top: -20px;  /* Adjust the distance above the label */
+  left: 0;
+}
+
+.input-group {
+  position: relative; /* Required for absolute positioning of error message */
+  margin-bottom: 20px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+}
+
+.input-group label {
+  display: block;
+  margin-top: 5px;
+}
+
+.invalid-feedback {
+  color: red;
+  font-size: 0.875rem;
+}
+
+.invalid-feedback i {
+  color: red;
+}
+
+
+/* Logo Styles */
 .logo {
-  color: var(--white);
+  color: white;
   font-size: 2rem;
   font-weight: bold;
   text-decoration: none;
@@ -31,7 +65,6 @@
   color: var(--primary-red);
 }
 
-/* Header */
 header {
   position: sticky;
   top: 0;
@@ -40,48 +73,58 @@ header {
   padding: 1rem 0;
 }
 
-/* Navigation */
+/* Search Bar Styles */
+.search-bar .input-group {
+  border-radius: 25px;
+  overflow: hidden;
+}
+
+.search-bar .btn-danger {
+  background-color: var(--primary-red);
+}
+
+/* Navigation Styles */
 .nav-link {
   white-space: nowrap;
 }
 
-/* Sticky Elements */
+/* Make the header and navbar sticky */
 .sticky-header {
-  position: -webkit-sticky;
+  position: -webkit-sticky; /* For Safari */
   position: sticky;
   top: 0;
   width: 100%;
   z-index: -10;
 }
 
+/* Sticky Navbar */
 .sticky-navbar {
   position: sticky;
-  top: 80px;
+  top: 80px; /* Adjust based on your header height */
   z-index: 999;
 }
 
-/* ====================================
- 3. DROPDOWN & MENU
-==================================== */
-/* Dropdown */
+/* Dropdown Menu Adjustment */
 .dropdown {
-  position: relative;
-  z-index: 1050;
+  position: relative; /* Make sure the dropdown is positioned relative to its button */
+  z-index: 1050; /* Ensure the dropdown is above the header */
 }
 
+/* Make sure the dropdown menu is below the "My Account" button */
 .dropdown-menu {
   position: absolute;
-  top: 100%;
+  top: 100%;  /* Ensures the menu appears directly below the button */
   left: 0;
   right: auto;
-  z-index: 1060;
-  background-color: var(--white);
-  box-shadow: var(--shadow);
+  z-index: 1060;  /* Above the navbar */
+  background-color: #fff; /* Adjust background color if necessary */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: adds a shadow for better visibility */
 }
 
+/* For the dropdown toggle button */
 .dropdown-toggle {
   position: relative;
-  z-index: 1060;
+  z-index: 1060; /* Ensure the button is above the dropdown */
 }
 
 /* Slide Menu */
@@ -91,7 +134,7 @@ header {
   left: -280px;
   width: 280px;
   height: 100vh;
-  background: var(--white);
+  background: white;
   z-index: 1000;
   transition: left 0.3s ease-in-out;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
@@ -101,7 +144,6 @@ header {
   left: 0;
 }
 
-/* Menu Components */
 .menu-overlay {
   position: fixed;
   top: 0;
@@ -119,196 +161,44 @@ header {
 
 .menu-header {
   background: var(--dark-bg);
-  color: var(--white);
+  color: white;
   padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* ====================================
- 4. FORM ELEMENTS
-==================================== */
-.input-group {
-  position: relative;
-  margin-bottom: 20px;
+.menu-close {
+  color: white;
+  font-size: 24px;
+  background: none;
+  border: none;
 }
 
-.input-group input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 5px;
+.menu-items {
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
-.input-group label {
+.menu-items li a {
+  padding: 15px 20px;
   display: block;
-  margin-top: 5px;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid #eee;
 }
 
-/* Search Bar */
-.search-bar .input-group {
-  border-radius: 25px;
-  overflow: hidden;
-}
-
-.search-bar .btn-danger {
-  background-color: var(--primary-red);
-}
-
-/* ====================================
- 5. CARD STYLES
-==================================== */
-.card {
-  height: 350px;
-  display: flex;
-  flex-direction: column;
+/* Header Icons */
+.header-icons .btn-link {
   position: relative;
-  transition: transform 0.3s ease, border 0.3s ease;
 }
 
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-  border: 1.5px solid var(--primary-red);
+.btn-link .fa-heart:hover {
+  color: red !important;
 }
 
-.card-body {
-  flex-grow: 1;
-  padding-bottom: 30px;
-}
-
-.card-title {
-  color: black;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.card-price {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  font-size: 25px;
-}
-
-.card-img-top {
-  object-fit: cover;
-  height: 300px;
-}
-
-/* ====================================
- 6. PRODUCT LISTING
-==================================== */
-.product-listing {
-  margin-top: 20px !important;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  padding: 20px;
-  max-width: 1500px;
-  margin: 70px auto;
-}
-
-/* Product Details */
-.product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0 !important;
-}
-
-.product-name {
-  font-size: 35px;
-  margin: 0;
-}
-
-.product-price {
-  font-size: 35px;
-  font-weight: 100;
-  margin: 0;
-  color: var(--primary-red);
-}
-
-/* ====================================
- 7. SLIDESHOW
-==================================== */
-.slideshow-container {
-  position: relative;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  overflow: hidden;
-}
-
-.mySlides {
-  display: flex;
-  justify-content: center;
-  height: 650px;
-}
-
-.mySlides img {
-  width: auto;
-  height: 600px;
-  object-fit: cover;
-  margin: 0;
-}
-
-/* ====================================
- 8. CUSTOM COMPONENTS
-==================================== */
-/* Custom Cards */
-.custom-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-}
-
-.custom-card-header {
-  padding: 1rem;
-  background-color: #28a745;
-  color: var(--white);
-  font-size: 1.25rem;
-}
-
-.custom-card-body {
-  padding: 1rem;
-}
-
-/* Custom Buttons */
-.custom-btn {
-  background-color: var(--primary-red) !important;
-  color: var(--white) !important;
-}
-
-/* ====================================
- 9. RESPONSIVE DESIGN
-==================================== */
-/* Mobile Styles */
-@media (max-width: 576px) {
-  #allItems .card {
-      height: 250px;
-  }
-
-  #allItems .card img {
-      height: 150px;
-      object-fit: cover;
-  }
-
-  #allItems .card .card-body {
-      padding: 8px;
-  }
-
-  #allItems .card-price {
-      font-size: 0.9rem;
-  }
-
-  .card-title {
-      font-size: 1rem;
-  }
-}
-
-/* Tablet Styles */
+/* Responsive Design */
 @media (max-width: 768px) {
   .top-bar .contact-info {
       display: none;
@@ -328,9 +218,22 @@ header {
       justify-content: center !important;
       margin-top: 1rem;
   }
+
+  .navbar-nav {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+  }
+
+  .menu-toggle {
+      display: block;
+  }
+
+  .desktop-nav {
+      display: none;
+  }
 }
 
-/* Desktop Styles */
 @media (min-width: 769px) {
   .menu-toggle {
       display: none;
@@ -341,7 +244,307 @@ header {
   }
 }
 
-/* Grid Layout */
+@media (max-width: 576px) {
+  .card-title {
+      font-size: 1rem;
+      height: auto !important;
+  }
+
+  .card-price {
+      font-size: 0.9rem;
+  }
+
+  .row-cols-2 {
+      --bs-gutter-x: 0.5rem;
+  }
+}
+
+
+.card {
+  height: 350px; /* Adjust the height as needed */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Needed for absolute positioning of the price */
+  transition: transform 0.3s ease, border 0.3s ease;
+}
+
+/* Card body takes up the available space */
+.card-body {
+  flex-grow: 1;
+  padding-bottom: 30px; /* Optional: adds some space for the price to not overlap */
+}
+
+.card-title {
+  color: black;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* Limit the title to 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Price container styles */
+.card-price {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  font-size: 25px; /* Adjust font size if needed */
+}
+
+.card-img-top {
+  object-fit: cover;
+  height: 300px; /* Adjust based on your needs */
+}
+
+.card:hover {
+  transform: translateY(-5px); /* Lifts the card up slightly */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3); /* Adds a stronger shadow */
+  border: 1.5px solid #D10024;
+}
+
+/* user info styling */
+.custom-btn {
+  background-color: #D10024 !important; /* Dark blue background */
+  color: rgb(255, 255, 255) !important; /* White text */
+}
+
+/*FOR item_detail.html PART*/
+.product-listing {
+  margin-top: 20px !important; /* Adjust this value as needed */
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  max-width: 1500px;
+  margin: 70px auto; /* Center the listing */
+}
+
+.product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0 !important;
+}
+
+.contact-details {
+  width: 300px; /* Fixed width for the right section */
+  height: 210px; /* Set a fixed height for the right section */
+  padding: 20px; /* Padding inside the right section */
+  border-radius: 8px; /* Optional: rounded corners */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: box shadow */
+  overflow: auto; /* Allows scrolling if content exceeds height */
+}
+
+.details-container {
+  display: flex; /* Use Flexbox to arrange children */
+  justify-content: space-between; /* Space between left and right sections */
+  margin-top: 20px; /* Add margin to separate from the slideshow */
+}
+
+.product-details {
+  flex: 1; /* Allow this section to take available space */
+  margin-right: 20px; /* Add some space between the two sections */
+}
+
+.product-name {
+  font-size: 35px; /* Increase the font size for the product name */
+  margin: 0; /* Remove default margin */
+}
+
+.product-price {
+  font-size: 35px; /* Increase the font size for the price */
+  font-weight: 100;
+  margin: 0; /* Remove default margin */
+  color: #D10024; /* Optional: Color for the price */
+}
+
+.product-condition {
+  font-size: 25px; /* Increase the font size for the product name */
+  margin: 0; /* Remove default margin */
+}
+
+.product-details p {
+  white-space: pre-wrap; /* This ensures that whitespace is preserved */
+  font-size: 17px; /* Adjust size as needed */
+  line-height: 1; /* Improve readability */ 
+  background: #ecf0f1;margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.slideshow-container {
+  position: relative;
+  max-width: 100%; /* Keep the container responsive */
+  margin: 0 auto; /* Center the container */
+  text-align: center;
+  overflow: hidden; /* Prevent overflow of images */
+}
+
+.mySlides {
+  display: flex; /* Use flexbox to center the image */
+  justify-content: center; /* Center the image horizontally */
+  height: 650px; /* Set a fixed height for the slides */
+}
+
+.mySlides img {
+  width: auto; /* Adjust this according to your preference */
+  height: 600px; /* Example fixed height */
+  object-fit: cover; /* Crop and fit the image */
+  margin: 0;
+}
+
+/* Arrow styling for slideshow */
+.arrow {
+  cursor: pointer;
+  position: absolute;
+  top: 50%;
+  width: auto;
+  padding: 16px;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  transition: 0.6s ease;
+  border-radius: 0 3px 3px 0;
+  user-select: none;
+}
+
+.left {
+  left: 0;
+  border-radius: 3px 0 0 3px;
+}
+
+.right {
+  right: 0;
+  border-radius: 3px;
+}
+
+
+/* post item */
+.form-container {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+.form-container h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+.form-group label {
+  font-weight: bold;
+}
+.submit-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #003366;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1.1rem;
+}
+.submit-btn:hover {
+  background-color: #00509e;
+}
+.back-link {
+  display: block;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 1rem;
+  color: #003366;
+  text-decoration: none;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+.form-control, select {
+  border-radius: 5px;
+}
+.form-group {
+  margin-bottom: 15px;
+}
+.form-group input[type="text"], .form-group textarea, .form-group select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+.form-group input[type="file"] {
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+.form-group #grid_image_preview img, .form-group #detail_images_preview img {
+  max-width: 200px;
+  margin-top: 10px;
+  margin-right: 10px;
+}
+
+/* responsive */
+@media (max-width: 576px) {
+  #allItems .card {
+    height: 250px; /* Smaller height for slim devices */
+  }
+
+  #allItems .card img {
+    height: 150px; /* Adjust image height to keep proportion */
+    object-fit: cover;
+  }
+
+  #allItems .card .card-body {
+    padding: 8px; /* Adjust padding for smaller card body */
+  }
+
+  #allItems .card-price {
+    font-size: 0.9rem; /* Smaller font size for price on small screens */
+  }
+
+  .card-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Limit the title to 2 lines on mobile */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; /* Allow text to wrap */
+    word-wrap: break-word; /* Break words if necessary */
+    font-size: 1rem; /* Smaller font size on mobile */
+  }
+}
+
+/* Ensure cards are responsive and have consistent sizes on mobile */
+@media (max-width: 767px) {
+  #itemList .card {
+      width: 100%; /* Full width on small screens */
+      height: 250px; /* Set a fixed height for mobile view cards */
+  }
+
+  #itemList .card img {
+      object-fit: cover; /* Make images fill the card, maintaining aspect ratio */
+      height: 150px; /* Set image height for consistency */
+  }
+
+  #itemList .card-title {
+      font-size: 1rem; /* Adjust font size to fit smaller screens */
+      height: auto; /* Allow text to wrap if necessary */
+  }
+
+  #itemList .card-price {
+      font-size: 1.2rem; /* Adjust price font size */
+      bottom: 0; /* Position the price at the bottom */
+  }
+}
+
+/* Adjust the layout for larger devices (tablet and up) */
+@media (min-width: 768px) {
+  #itemList .card {
+      height: auto; /* Allow the card to expand based on content */
+  }
+
+  #itemList .card img {
+      height: 200px; /* Increase image height for larger screens */
+  }
+}
+
+/* Ensure that the cards are aligned properly on different screen sizes */
 #itemList .row-cols-2 {
   grid-template-columns: repeat(2, 1fr);
 }
@@ -354,379 +557,26 @@ header {
   grid-template-columns: repeat(4, 1fr);
 }
 
-.header-icons .btn-link .fa-heart {
-    transition: color 0.3s ease;
-}
 
-.header-icons .btn-link:hover .fa-heart {
-    color: var(--primary-red) !important;
-}
 
-/* item detail */
-.product-detail-container {
-  margin-top: 2rem;
-}
-.slideshow-container {
-  height: 500px; /* Fixed height */
-  overflow: hidden;
-}
-.slideshow-container .carousel-item {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.slideshow-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain; /* Maintains aspect ratio */
-  background-color: #f8f9fa; /* Light background to show contained image */
-}
-.product-description {
-  margin-top: 2rem;
-}
-
-.product-detail-container {
-  padding: 2rem 0;
-  background-color: #f8f9fa;
-}
-
-.product-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.slideshow-container {
-  height: 500px;
+/*checkout*/
+.custom-card {
+  border: 1px solid #ddd; /* Or any other styling you need */
   border-radius: 8px;
-  overflow: hidden;
-  position: relative;
-  background-color: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.slideshow-container .mySlides {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
-}
-
-.slideshow-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.product-info {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.product-header {
-  border-bottom: 1px solid #dee2e6;
-  padding-bottom: 1rem;
-}
-
-.product-name {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  color: #212529;
-}
-
-.product-price {
-  font-size: 1.75rem;
-  color: #dc3545;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.product-condition {
-  font-size: 1rem;
-  color: #6c757d;
   margin-bottom: 1rem;
 }
 
-.seller-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.custom-card-header {
   padding: 1rem;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.seller-info img {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.save-btn {
-  background-color: #dc3545;
+  background-color: #28a745; /* Green background */
   color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  width: fit-content;
+  font-size: 1.25rem;
 }
 
-.save-btn:hover {
-  background-color: #c82333;
-}
-
-.product-description {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.contact-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.meet-up, .contact-seller {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-@media (max-width: 768px) {
-  .product-content {
-      grid-template-columns: 1fr;
-  }
-
-  .contact-section {
-      grid-template-columns: 1fr;
-  }
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  margin: 1rem 0;
-}
-
-.action-button {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.save-btn {
-  background-color: #dc3545;
-  color: white;
-}
-
-.save-btn:hover {
-  background-color: #c82333;
-}
-
-.slideshow-container {
-height: 600px; /* Increased height for larger images */
-border-radius: 8px;
-overflow: hidden;
-position: relative;
-background-color: white;
-box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.slideshow-container .mySlides {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.custom-card-body {
   padding: 1rem;
 }
 
-.slideshow-container img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain; /* Ensures the image maintains its aspect ratio */
-}
-
-.thumbnail-nav {
-  display: flex;
-  gap: 1rem;
-  overflow-x: auto;
-  padding: 1rem;
-  scrollbar-width: thin;
-}
-
-.thumbnail {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.3s ease;
-}
-
-.thumbnail:hover, .thumbnail.active {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-/* post item */
-.product-detail-container {
-  padding: 3rem 0;
-  background-color: #f8f9fa;
-}
-
-.product-content {
-  gap: 3rem;
-  max-width: 1400px;  /* Increased max-width */
-  padding: 0 2rem;
-}
-
-.slideshow-container {
-  height: 650px;  /* Increased height */
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-
-.product-info {
-  gap: 2rem;
-}
-
-.product-header {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-  border: none;
-}
-
-.product-name {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-.product-price {
-  font-size: 2rem;
-  color: #2ecc71;
-  margin: 1rem 0;
-}
-
-.product-condition {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: #f8f9fa;
-  border-radius: 20px;
-  font-weight: 500;
-}
-
-.seller-info {
-  padding: 1.5rem;
-  border-radius: 12px;
-  transition: transform 0.3s ease;
-}
-
-.seller-info img {
-  width: 60px;
-  height: 60px;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.action-buttons {
-  gap: 1.5rem;
-}
-
-.action-button {
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.save-btn {
-  background: linear-gradient(45deg, #ff6b6b, #ee5253);
-}
-
-.product-description {
-  border-radius: 12px;
-  padding: 2rem;
-}
-
-.contact-section {
-  gap: 1.5rem;
-}
-
-.meet-up, .contact-seller {
-  padding: 2rem;
-  border-radius: 12px;
-  transition: transform 0.3s ease;
-}
-
-.meet-up:hover, .contact-seller:hover {
-  transform: translateY(-2px);
-}
-
-/* Thumbnail navigation (New feature) */
-.thumbnail-nav {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding: 1rem;
-  justify-content: center;
-}
-
-.thumbnail {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.3s ease;
-}
-
-.thumbnail:hover, .thumbnail.active {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.form-control:focus, .form-select:focus {
-border-color: #D10024;
-box-shadow: 0 0 0 0.25rem rgba(209, 0, 36, 0.25);
-}
-
-.upload-section {
-  border: 2px dashed #dee2e6;
-}
-
-#grid_image_preview img, #detail_images_preview img {
-  max-width: 150px;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+.nav-link.active {
+    color: red !important;
 }

@@ -3,12 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Details - Calamba Trading Hub</title>
+    <title>Product Details - CCCBuyNSell</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://kit.fontawesome.com/cb15c60a65.js" crossorigin="anonymous"></script>
     <style>
-        
+        .product-detail-container {
+            margin-top: 2rem;
+        }
+        .slideshow-container {
+            height: 500px; /* Fixed height */
+            overflow: hidden;
+        }
+        .slideshow-container .carousel-item {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .slideshow-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Maintains aspect ratio */
+            background-color: #f8f9fa; /* Light background to show contained image */
+        }
+        .product-description {
+            margin-top: 2rem;
+        }
+
+        .product-detail-container {
+            padding: 2rem 0;
+            background-color: #f8f9fa;
+        }
+
+        .product-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .slideshow-container {
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .slideshow-container .mySlides {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .slideshow-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 1rem;
+            cursor: pointer;
+            border-radius: 25%;
+            z-index: 2;
+            transition: background 0.3s;
+        }
+
+        .arrow:hover {
+            background: rgba(0,0,0,0.7);
+        }
+
+        .arrow.left { left: 1rem; }
+        .arrow.right { right: 1rem; }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .product-header {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 1rem;
+        }
+
+        .product-name {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: #212529;
+        }
+
+        .product-price {
+            font-size: 1.75rem;
+            color: #dc3545;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-condition {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .seller-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .seller-info img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .save-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: fit-content;
+        }
+
+        .save-btn:hover {
+            background-color: #c82333;
+        }
+
+        .product-description {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .contact-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .meet-up, .contact-seller {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            .product-content {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .action-button {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .save-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background-color: #c82333;
+        }
+
+        .cart-btn {
+            background-color: #198754;
+            color: white;
+        }
+
+        .cart-btn:hover {
+            background-color: #157347;
+        }
+
+        .slideshow-container {
+        height: 600px; /* Increased height for larger images */
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        background-color: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .slideshow-container .mySlides {
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .slideshow-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensures the image maintains its aspect ratio */
+        }
+
+        .thumbnail-nav {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            padding: 1rem;
+            scrollbar-width: thin;
+        }
+
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .thumbnail:hover, .thumbnail.active {
+            opacity: 1;
+            transform: scale(1.1);
+        }
 
     </style>
 </head>
@@ -89,15 +344,16 @@
         <!-- Left side: Image slideshow and description -->
         <div>
             <div class="slideshow-container">
+                <!-- Display only detail images -->
                 {% if item.detail_images %}
-                    {% for image_url in item.detail_images %}
+                    {% for image in item.detail_images.split(',') %}
                         <div class="mySlides">
-                            <img src="{{ image_url }}" alt="{{ item.name }}">
+                            <img src="{{ image.strip() }}" alt="{{ item.name }}">
                         </div>
                     {% endfor %}
                 {% else %}
                     <div class="mySlides">
-                        <img src="{{ DEFAULT_IMAGE_URL }}" alt="{{ item.name }}">
+                        <p class="text-center">No additional images available for this item.</p>
                     </div>
                 {% endif %}
             </div>
@@ -105,8 +361,8 @@
             <!-- Thumbnail navigation (optional) -->
             <div class="thumbnail-nav mt-3 d-flex justify-content-center">
                 {% if item.detail_images %}
-                    {% for image_url in item.detail_images %}
-                        <img src="{{ image_url }}" 
+                    {% for image in item.detail_images.split(',') %}
+                        <img src="{{ image.strip() }}" 
                              onclick="currentSlide({{ loop.index0 }})" 
                              class="thumbnail {% if loop.first %}active{% endif %}" 
                              alt="thumbnail">
@@ -125,23 +381,18 @@
         <div class="product-info">
             <div class="product-header mb-2">
                 <h1 class="product-name">{{ item.name }}</h1>
-                <div class="product-price" style="color: #D10024 !important;">PHP {{ item.price }}</div>
+                <div class="product-price">PHP {{ item.price }}</div>
                 <div class="product-condition">Condition: {{ item_quality }}</div>
             </div>
 
             <div class="seller-info">
-                <div class="d-flex align-items-center gap-3">
-                    {% if item.profile_picture %}
-                        <img src="{{ item.profile_picture }}" 
-                             alt="Seller Profile" 
-                             class="rounded-circle"
-                             style="width: 50px; height: 50px; object-fit: cover;">
-                    {% else %}
-                        <i class="fas fa-user-circle" style="font-size: 50px; color: #D10024;"></i>
-                    {% endif %}
-                    <div>
-                        <h3 class="mb-0">{{ item.username }}</h3>
-                    </div>
+                {% if item.profile_image %}
+                    <img src="{{ item.profile_image }}" alt="Seller Profile" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
+                {% else %}
+                    <i class="fas fa-user-circle" style="font-size: 50px; color: #D10024;"></i>
+                {% endif %}
+                <div>
+                    <h3 class="mb-0">Seller: {{ item.username }}</h3>
                 </div>
             </div>
 

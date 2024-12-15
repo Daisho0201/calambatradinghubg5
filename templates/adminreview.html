@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Review</title>
+</head>
+<body>
+    <h1>Pending Posts</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Description</th>
+                <th>Quality</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>{{ item['name'] }}</td>
+                <td>{{ item['price'] }}</td>
+                <td>{{ item['description'] }}</td>
+                <td>{{ item['quality'] }}</td>
+                <td>
+                    <form action="{{ url_for('review_post', item_id=item['id'], action='approve') }}" method="POST" style="display:inline;">
+                        <button type="submit">Approve</button>
+                    </form>
+                    <form action="{{ url_for('review_post', item_id=item['id'], action='reject') }}" method="POST" style="display:inline;">
+                        <button type="submit">Reject</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

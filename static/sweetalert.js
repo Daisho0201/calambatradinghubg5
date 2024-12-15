@@ -2,7 +2,7 @@ document.querySelectorAll('.remove-item-btn').forEach(button => {
     button.addEventListener('click', function () {
         const itemName = this.getAttribute('data-item-name');
         const form = this.closest('.remove-form');
-        const actionUrl = form.getAttribute('action');
+        const actionUrl = form.getAttribute('action'); // Get the URL from form action
 
         // SweetAlert confirmation dialog
         Swal.fire({
@@ -28,6 +28,7 @@ document.querySelectorAll('.remove-item-btn').forEach(button => {
                 .then(data => {
                     if (data.status === 'success') {
                         Swal.fire('Removed!', data.message, 'success').then(() => {
+                            // Reload or update DOM
                             location.reload();
                         });
                     } else {

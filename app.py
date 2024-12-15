@@ -16,15 +16,12 @@ import cloudinary.uploader
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure Cloudinary with your credentials
-cloudinary.config( 
-    cloud_name = "devdvffal", 
-    api_key = "786597521674718", 
-    api_secret = "WNUK4s9g3rpgvArOZuQsFU2e9Cg"
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name = "dxgbxchqm",
+    api_key = "235818666177812",
+    api_secret = "jFgwpbZHkVrZuQzYKn6QKBK5_Ks"
 )
-
-# Default image URL (use a Cloudinary default image)
-DEFAULT_IMAGE_URL = "https://res.cloudinary.com/devdvffal/image/upload/v1/default-item.jpg"
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Required for session management
@@ -55,50 +52,12 @@ def allowed_file(filename):
 
 # Database connection
 def get_db_connection():
-    try:
-        print("Attempting database connection with SSL configuration...")
-        
-        connection = mysql.connector.connect(
-            host='mysql-1eef0d0e-marketplace-e1a9.f.aivencloud.com',
-            port=28562,
-            user='avnadmin',
-            password='AVNS_1z1MpJQf9fVC_t-eNwP',
-            database='defaultdb',
-            use_pure=True,
-            ssl_disabled=False,
-            ssl_verify_identity=False  # Disable SSL identity verification
-        )
-        print("Database connection successful!")
-        return connection
-    except mysql.connector.Error as err:
-        print(f"Error connecting to database: {err}")
-        print(f"Error type: {type(err)}")
-        print(f"Error details: {str(err)}")
-        raise
-
-# Function to ensure the 'condition' column exists
-def ensure_condition_column_exists():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if the 'condition' column exists
-        cursor.execute("SHOW COLUMNS FROM items LIKE 'condition'")
-        result = cursor.fetchone()
-        
-        # If the column does not exist, add it
-        if not result:
-            cursor.execute("ALTER TABLE items ADD COLUMN `condition` VARCHAR(255)")
-            print("Column 'condition' added to 'items' table.")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        print(f"Error ensuring 'condition' column exists: {str(e)}")
-
-# Call the function to ensure the column exists when the app starts
-ensure_condition_column_exists()
+    return mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',  # No password
+        database='marketplace'
+    )
 
 # Create the items table
 def create_items_table():
@@ -128,54 +87,91 @@ def create_items_table():
 proofs_data = []
 
 # Route for user information
-@app.route('/user_info')
-@login_required
+@app.route('/user_info', methods=['GET', 'POST'])
+@login_required  # Ensure the user is logged in
 def user_info():
-    try:
-        user_id = session.get('user_id')
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Get user information
-        cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
-        user = cursor.fetchone()
-        
-        # Get user's posted items with images
-        cursor.execute('''
-            SELECT 
-                id,
-                title as name,
-                price,
-                image_url as grid_image,
-                description
-            FROM items 
-            WHERE seller_id = %s 
-            ORDER BY id DESC
-        ''', (user_id,))
-        
-        posted_items = cursor.fetchall()  # Changed from listed_items to posted_items
-        print(f"Found {len(posted_items)} items for user {user_id}")
-        
-        # Debug print for the first item
-        if posted_items:
-            print(f"First item data: {posted_items[0]}")
-            print(f"First item image URL: {posted_items[0].get('grid_image')}")
-        
+    user_id = session['user_id']  # Get the logged-in user's ID
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    if request.method == 'POST':
+        # If the form is submitted, update user information
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form.get('password')  # Password is optional for update
+
+        # Update the user information in the database
+        if password:  # If a new password is provided, hash it
+            hashed_password = generate_password_hash(password)
+            cursor.execute(
+                "UPDATE users SET first_name = %s, last_name = %s, username = %s, email = %s, password = %s WHERE id = %s",
+                (first_name, last_name, username, email, hashed_password, user_id)
+            )
+        else:
+            cursor.execute(
+                "UPDATE users SET first_name = %s, last_name = %s, username = %s, email = %s WHERE id = %s",
+                (first_name, last_name, username, email, user_id)
+            )
+
+        conn.commit()
         cursor.close()
         conn.close()
+        return redirect(url_for('user_info'))  # Redirect to the same page to see updates
+
+    # Fetch current user information to display in the form, including first and last name
+    cursor.execute("SELECT first_name, last_name, username, email FROM users WHERE id = %s", (user_id,))
+    user_data = cursor.fetchone()
+
+    # Fetch the user's posted items
+    posted_items = get_user_items(user_id)  # Call to the function to get user items
+
+    cursor.close()
+    conn.close()
+
+    return render_template('user_info.html', user=user_data, posted_items=posted_items)  # Pass user data and items to the template
+
+@app.route('/upload_profile_picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    # Check if a file was uploaded
+    if 'profile_picture' not in request.files:
+        flash('No file selected', 'danger')
+        return redirect(url_for('user_info'))
+
+    file = request.files['profile_picture']
+
+    # Check if file is actually selected
+    if file.filename == '':
+        flash('No file selected', 'danger')
+        return redirect(url_for('user_info'))
+
+    try:
+        # Upload to Cloudinary
+        result = cloudinary.uploader.upload(file)
         
-        return render_template('user_info.html', 
-                             user=user,
-                             posted_items=posted_items)  # Changed to match template
-                             
+        # Get database connection
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Update the user's profile_image in the database
+        cur.execute(
+            "UPDATE users SET profile_image = %s WHERE id = %s",
+            (result['secure_url'], session['user_id'])
+        )
+
+        # Commit the transaction
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash('Profile picture uploaded successfully!', 'success')
     except Exception as e:
-        print(f"Error in user_info route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
+        print(f"Upload error: {str(e)}")  # For debugging
+        flash('Error uploading profile picture', 'danger')
 
-
+    return redirect(url_for('user_info'))
 
 # User class for Flask-Login
 class User(UserMixin):
@@ -183,86 +179,88 @@ class User(UserMixin):
         self.id = id
         self.username = username
         self.email = email
-        self.profile_picture = None
 
 # Index route to display homepage
 @app.route('/')
+def index():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)  # Use dictionary cursor for named access
+    cursor.execute("SELECT * FROM items")  # Fetch all items from the database
+    items = cursor.fetchall()  # Get all items as a list of dictionaries
+    cursor.close()
+    conn.close()
+    return render_template('homepage.html', items=items)
+
+# Homepage route
+@app.route('/homepage')
 def homepage():
-    # Check if the user is logged in
-    if 'user_id' in session:  # Assuming you store user ID in session
-        return redirect(url_for('main_index'))  # Redirect to main index if logged in
-    return render_template('homepage.html')  # Render the login page if not logged in
 
-@app.route('/main_index')
-def main_index():
-    # This route should only be accessible if the user is logged in
-    if 'user_id' not in session:
-        return redirect(url_for('homepage'))  # Redirect to homepage if not logged in
-
-    # Fetch items and render the main index
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        cursor.execute('SELECT id, title as name, price, image_url as grid_image FROM items ORDER BY id DESC')
-        all_items = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        print(f"Fetched {len(all_items)} items from the database.")  # Debugging output
-
-        return render_template('main_index.html', all_items=all_items)
-
-    except Exception as e:
-        print(f"Error in main_index route: {str(e)}")
-        return "An error occurred", 500
+    # Check if 'user_id' exists in the session
+    if session.get('user_id'):  # Safely access 'user_id' using get()
+        return redirect(url_for('main_index'))  # Redirect to main_index if user is logged in
+    else:
+        return render_template('homepage.html')  # Render the login page if not logged in
 
 # Route for searching and filtering items
-@app.route('/search')
+@app.route('/search', methods=['GET'])
 def search():
-    try:
-        query = request.args.get('query', '')
-        print(f"Search query received: {query}")
+    query = request.args.get('query', '').lower()  # Get the search query
+    min_price = request.args.get('min_price', type=int)  # Get min price filter
+    max_price = request.args.get('max_price', type=int)  # Get max price filter
+    quality = request.args.get('quality')  # Get quality filter
+    category = request.args.get('category')  # Get category filter
 
-        if not query:
-            print("No query provided, redirecting to main index")
-            return redirect(url_for('main_index'))
+    # Start building the SQL query
+    sql = "SELECT * FROM items WHERE LOWER(name) LIKE %s OR LOWER(description) LIKE %s"
+    params = ['%' + query + '%', '%' + query + '%']
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Basic search query with only existing columns
-        search_term = f"%{query}%"
-        cursor.execute('''
-            SELECT 
-                i.id,
-                i.title as name,
-                i.price,
-                i.image_url as grid_image,
-                u.username
-            FROM items i
-            LEFT JOIN users u ON i.seller_id = u.id
-            WHERE i.title LIKE %s 
-               OR i.description LIKE %s
-        ''', (search_term, search_term))
-        
-        results = cursor.fetchall()
-        print(f"Found {len(results)} results")
-        
-        cursor.close()
-        conn.close()
-        
-        return render_template('search_results.html', 
-                             query=query,
-                             results=results)
-                             
-    except Exception as e:
-        print(f"Error in search route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
+    # Add price filters if provided
+    if min_price is not None:
+        sql += " AND price >= %s"
+        params.append(min_price)
+    
+    if max_price is not None:
+        sql += " AND price <= %s"
+        params.append(max_price)
+
+    # Add quality filter if provided and not "all"
+    if quality and quality != 'all':
+        sql += " AND quality = %s"
+        params.append(quality)
+
+    # Add category filter if provided and not "all"
+    if category and category != 'all':
+        sql += " AND category = %s"
+        params.append(category)
+
+    # Execute the query
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(sql, tuple(params))
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('search_results.html', query=query, results=results, category=category, quality=quality, min_price=min_price, max_price=max_price)
+
+
+@app.route('/profile/<int:user_id>', methods=['GET'])
+def view_profile(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Fetch user details by user_id
+    cursor.execute("SELECT username, email FROM users WHERE id = %s", (user_id,))
+    user = cursor.fetchone()
+
+    conn.close()
+
+    if user:
+        return render_template('profile.html', user=user)
+    else:
+        flash('User not found', 'danger')
+        return redirect(url_for('main_index'))
+
 
 
 # Route to update an item
@@ -301,41 +299,13 @@ def update_item(item_id):
 @app.route('/delete_item/<int:item_id>', methods=['POST'])
 @login_required
 def delete_item(item_id):
-    try:
-        user_id = session.get('user_id')
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Debug print to check the user_id and item_id
-        print(f"User ID: {user_id} is attempting to delete item ID: {item_id}")
-
-        # First, delete related saved items
-        cursor.execute('DELETE FROM saved_items WHERE item_id = %s', (item_id,))
-        
-        # Then delete related images from detail_images
-        cursor.execute('DELETE FROM detail_images WHERE item_id = %s', (item_id,))
-        
-        # Now delete the item from the items table
-        cursor.execute('DELETE FROM items WHERE id = %s AND seller_id = %s', (item_id, user_id))
-        conn.commit()
-
-        # Check if any rows were affected
-        if cursor.rowcount == 0:
-            print(f"No item found with ID {item_id} for user {user_id}.")
-            return "Item not found or you do not have permission to delete this item.", 404
-
-        cursor.close()
-        conn.close()
-
-        print(f"Item with ID {item_id} marked as sold by user {user_id}.")
-        return redirect(url_for('user_info'))  # Redirect back to user info page
-
-    except Exception as e:
-        print(f"Error in delete_item route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM items WHERE id = %s AND user_id = %s", (item_id, session['user_id']))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return redirect(url_for('user_info'))
 
 
 # Function to get user items
@@ -358,33 +328,28 @@ def get_all_items():
     conn.close()
     return items
 
+# Route for main index
+@app.route('/main_index')
+@login_required  # Ensure the user is logged in
+def main_index():
+    user_id = session['user_id']  # Assuming user_id is stored in the session
+    user_items = get_user_items(user_id)  # Fetch user items from the database
+    all_items = get_all_items()  # Fetch all items for display
+    return render_template('main_index.html', user_items=user_items, all_items=all_items)
 
-@app.route('/filter_by_category/<string:category>')
+
+@app.route('/filter/<category>', methods=['GET'])
+@login_required
 def filter_by_category(category):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        if category == 'all':
-            cursor.execute('SELECT * FROM items ORDER BY id DESC')
-        else:
-            cursor.execute('''
-                SELECT * FROM items 
-                WHERE category = %s 
-                ORDER BY id DESC
-            ''', (category,))
-
-        filtered_items = cursor.fetchall()
-        print(f"Filtered items for category '{category}': {filtered_items}")
-
-        cursor.close()
-        conn.close()
-
-        return render_template('main_index.html', items=filtered_items)  # Pass filtered items to the template
-
-    except Exception as e:
-        print(f"Error in filter_by_category route: {str(e)}")
-        return "An error occurred", 500
+    user_id = session['user_id']
+    user_items = get_user_items(user_id)
+    
+    if category == 'all':
+        all_items = get_all_items()
+    else:
+        all_items = get_items_by_category(category)  # Fetch items filtered by category
+    
+    return render_template('main_index.html', user_items=user_items, all_items=all_items)
 
 def get_items_by_category(category):
     connection = None  # Initialize connection variable here to avoid reference errors
@@ -418,113 +383,34 @@ def get_items_by_category(category):
             connection.close()
 
 
-def add_item_columns():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Check if the columns exist before adding them
-        cursor.execute("SHOW COLUMNS FROM items LIKE 'meetup_place'")
-        result = cursor.fetchone()
-        if not result:
-            cursor.execute("ALTER TABLE items ADD COLUMN meetup_place VARCHAR(255)")
-            print("Added column 'meetup_place'")
-        
-        cursor.execute("SHOW COLUMNS FROM items LIKE 'seller_phone'")
-        result = cursor.fetchone()
-        if not result:
-            cursor.execute("ALTER TABLE items ADD COLUMN seller_phone VARCHAR(20)")
-            print("Added column 'seller_phone'")
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        print(f"Error adding columns: {str(e)}")
-
-def create_detail_images_table():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Create detail_images table if it doesn't exist
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS detail_images (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                item_id INT NOT NULL,
-                image_url VARCHAR(255) NOT NULL,
-                FOREIGN KEY (item_id) REFERENCES items(id)
-            )
-        ''')
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("Detail images table created successfully")
-        
-    except Exception as e:
-        print(f"Error creating detail_images table: {str(e)}")
-
 @app.route('/item/<int:item_id>')
 def item_detail(item_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    cursor.execute("""
+        SELECT items.*, users.username
+        FROM items
+        JOIN users ON items.user_id = users.id
+        WHERE items.id = %s
+    """, (item_id,))
+    
+    item = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if item:
+        quality_mapping = {
+            'new': 'New',
+            'used_like_new': 'Used - Like New',
+            'used_good': 'Used - Good',
+            'used_fair': 'Used - Fair'
+        }
+        item_quality = quality_mapping.get(item['quality'], 'Unknown')
         
-        # Debug print
-        print(f"Fetching details for item ID: {item_id}")
-        
-        # Get item details with all required fields
-        cursor.execute('''
-            SELECT i.id,
-                   i.title AS name,
-                   i.price,
-                   i.description,
-                   i.seller_id,
-                   COALESCE(i.image_url, %s) AS grid_image,  -- Use default if image_url is None
-                   i.meetup_place,
-                   i.seller_phone,
-                   u.username,
-                   u.profile_picture,
-                   'Used - Good' AS item_quality,  -- Default value for now
-                   GROUP_CONCAT(DISTINCT di.image_url) AS detail_images
-            FROM items i
-            LEFT JOIN users u ON i.seller_id = u.id
-            LEFT JOIN detail_images di ON i.id = di.item_id
-            WHERE i.id = %s
-            GROUP BY i.id
-        ''', (DEFAULT_IMAGE_URL, item_id))
-        
-        item = cursor.fetchone()
-        
-        # Debug print
-        print(f"Item details: {item}")
-        
-        if item is None:
-            print(f"No item found with ID: {item_id}")
-            return "Item not found", 404
-            
-        # Convert detail_images string to list if it exists
-        if item.get('detail_images'):
-            item['detail_images'] = item['detail_images'].split(',')
-        else:
-            item['detail_images'] = []
-            
-        cursor.close()
-        conn.close()
-        
-        # Pass all required variables to template
-        return render_template('item_detail.html', 
-                               item=item,
-                               item_quality=item.get('item_quality', 'Used - Good'))
-        
-    except Exception as e:
-        print(f"Error in item_detail route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
+        return render_template('item_detail.html', item=item, item_quality=item_quality)
+    else:
+        return "Item not found", 404
 
 
 
@@ -586,35 +472,23 @@ def save_item(item_id):
 
 
 @app.route('/saved_items')
-@login_required
 def saved_items():
-    try:
-        user_id = session.get('user_id')
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        
-        # Fetch saved items for the user
-        cursor.execute('''
-            SELECT i.id, i.title as name, i.price, i.image_url as grid_image
-            FROM saved_items s
-            JOIN items i ON s.item_id = i.id
-            WHERE s.user_id = %s
-        ''', (user_id,))
-        
-        saved_items = cursor.fetchall()
-        print(f"Fetched saved items: {saved_items}")
-        
-        cursor.close()
-        conn.close()
-        
-        return render_template('saved_items.html', saved_items=saved_items)
-        
-    except Exception as e:
-        print(f"Error in saved_items route: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
-        return "An error occurred", 500
+    user_id = session.get('user_id')
+    if not user_id:
+        return redirect(url_for('login'))  # Redirect if user not logged in
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT items.* FROM items
+        JOIN saved_items ON items.id = saved_items.item_id
+        WHERE saved_items.user_id = %s
+    """, (user_id,))
+    saved_items = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('saved_items.html', saved_items=saved_items)
 
 
 @app.route('/remove_saved_item/<int:item_id>', methods=['POST'])
@@ -940,194 +814,46 @@ create_items_table()
 @app.route('/post_item', methods=['GET', 'POST'])
 @login_required
 def post_item():
-    try:
-        if request.method == 'POST':
-            # Get form data
-            title = request.form['item_name']
-            price = request.form['item_price']
-            description = request.form['item_desc']
-            meetup_place = request.form.get('meetup_place', 'To be discussed')  # New field
-            seller_phone = request.form.get('seller_phone', 'Contact through chat')  # New field
-            seller_id = session.get('user_id')
-            
-            # Handle main image upload
-            image_url = DEFAULT_IMAGE_URL
-            if 'grid_image' in request.files:
-                grid_image = request.files['grid_image']
-                if grid_image and grid_image.filename != '':
-                    try:
-                        upload_result = cloudinary.uploader.upload(grid_image)
-                        image_url = upload_result['secure_url']
-                        print(f"Main image uploaded: {image_url}")
-                    except Exception as e:
-                        print(f"Error uploading main image: {str(e)}")
+    if request.method == 'POST':
+        item_name = request.form['item_name']
+        item_price = request.form['item_price']
+        item_desc = request.form['item_desc']
+        item_quality = request.form['item_quality']
+        item_category = request.form['item_category']
+        meetup_place = request.form['meetup_place']
+        seller_phone = request.form['seller_phone']
 
-            conn = get_db_connection()
-            cursor = conn.cursor()
+        # Handle Grid Image upload
+        grid_image = request.files['grid_image']
+        grid_image_url = None
+        if grid_image and allowed_file(grid_image.filename):
+            upload_result = cloudinary.uploader.upload(grid_image)
+            grid_image_url = upload_result['secure_url']
 
-            # Insert the main item with meetup_place and seller_phone
-            cursor.execute('''
-                INSERT INTO items (title, price, description, seller_id, image_url, meetup_place, seller_phone)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (title, price, description, seller_id, image_url, meetup_place, seller_phone))
-            
-            item_id = cursor.lastrowid
-            print(f"New item inserted with ID: {item_id}")
+        # Handle Detail Image uploads (multiple images)
+        detail_images = request.files.getlist('detail_images')
+        detail_image_urls = []
 
-            # Handle additional images
-            if 'detail_images' in request.files:
-                detail_files = request.files.getlist('detail_images')
-                for detail_image in detail_files:
-                    if detail_image and detail_image.filename != '':
-                        try:
-                            upload_result = cloudinary.uploader.upload(detail_image)
-                            detail_url = upload_result['secure_url']
-                            print(f"Detail image uploaded: {detail_url}")
-                            
-                            # Insert into detail_images table
-                            cursor.execute('''
-                                INSERT INTO detail_images (item_id, image_url)
-                                VALUES (%s, %s)
-                            ''', (item_id, detail_url))
-                            
-                        except Exception as e:
-                            print(f"Error uploading detail image: {str(e)}")
+        for detail_image in detail_images:
+            if detail_image and allowed_file(detail_image.filename):
+                upload_result = cloudinary.uploader.upload(detail_image)
+                detail_image_urls.append(upload_result['secure_url'])
 
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            return redirect(url_for('main_index'))
-
-        return render_template('post_item.html')
-
-    except Exception as e:
-        print(f"Error in post_item route: {str(e)}")
-        print(traceback.format_exc())
-        return "An error occurred", 500
-
-# Add this new route to handle profile picture updates
-@app.route('/update_profile_picture', methods=['POST'])
-@login_required
-def update_profile_picture():
-    if 'profile_picture' not in request.files:
-        return jsonify({'success': False, 'error': 'No file uploaded'})
-    
-    file = request.files['profile_picture']
-    if file.filename == '':
-        return jsonify({'success': False, 'error': 'No file selected'})
-
-    if file and allowed_file(file.filename):
-        try:
-            # Upload to Cloudinary with specific options
-            upload_result = cloudinary.uploader.upload(
-                file,
-                folder="profile_pictures",  # Store in a specific folder
-                transformation=[
-                    {'width': 300, 'height': 300, 'crop': 'fill'},  # Resize and crop to square
-                    {'quality': 'auto:good'}  # Optimize quality
-                ]
-            )
-            
-            # Update database with the new profile picture URL
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute(
-                "UPDATE users SET profile_picture = %s WHERE id = %s",
-                (upload_result['secure_url'], session['user_id'])
-            )
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            
-            # Return the new profile picture URL
-            return jsonify({
-                'success': True,
-                'profile_picture_url': upload_result['secure_url']
-            })
-            
-        except Exception as e:
-            print(f"Error uploading profile picture: {str(e)}")  # Debug log
-            return jsonify({'success': False, 'error': str(e)})
-    
-    return jsonify({'success': False, 'error': 'Invalid file type'})
-
-# Add this function to create/update the users table
-def update_users_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        # Add profile_picture column if it doesn't exist
-        cursor.execute("""
-            ALTER TABLE users 
-            ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(255)
-        """)
-        conn.commit()
-    except Exception as e:
-        print(f"Error updating users table: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-
-# Call this function when your app starts
-# Add this near the bottom of your file, before the if __name__ == '__main__': line
-update_users_table()
-
-# Add this function to create necessary tables if they don't exist
-def create_detail_images_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Create detail_images table if it doesn't exist
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS detail_images (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            item_id INT NOT NULL,
-            image_url VARCHAR(255) NOT NULL,
-            FOREIGN KEY (item_id) REFERENCES items(id)
-        )
-    ''')
-    
-    # Add meetup_place and seller_phone columns to items table if they don't exist
-    try:
-        cursor.execute("ALTER TABLE items ADD COLUMN IF NOT EXISTS meetup_place VARCHAR(255)")
-        cursor.execute("ALTER TABLE items ADD COLUMN IF NOT EXISTS seller_phone VARCHAR(20)")
-    except Exception as e:
-        print(f"Note: {e}")
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-# Call this when the app starts
-create_detail_images_table()
-
-def add_category_column():
-    try:
+        # Save item to the database
         conn = get_db_connection()
         cursor = conn.cursor()
-
-        # Check if the category column exists
-        cursor.execute("SHOW COLUMNS FROM items LIKE 'category'")
-        result = cursor.fetchone()
-
-        # If the column does not exist, add it
-        if not result:
-            cursor.execute("ALTER TABLE items ADD COLUMN category VARCHAR(255)")
-            print("Category column added to items table.")
-
+        cursor.execute(''' 
+            INSERT INTO items (name, price, description, quality, category, meetup_place, seller_phone, grid_image, detail_images, user_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (item_name, item_price, item_desc, item_quality, item_category, meetup_place, seller_phone, 
+              grid_image_url, ','.join(detail_image_urls), session.get('user_id')))
         conn.commit()
         cursor.close()
         conn.close()
 
-    except Error as e:
-        print(f"Error while adding category column: {str(e)}")
+        return redirect(url_for('main_index'))
 
-# Call the function to add the column when the application starts
-add_category_column()
-
+    return render_template('post_item.html')
 
 if __name__ == '__main__':
     app.run(debug=True)  # Start the Flask application
